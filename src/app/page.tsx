@@ -1,3 +1,5 @@
+import Link from "next/link";
+
 export default function Home() {
   return (
     <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
@@ -9,9 +11,17 @@ export default function Home() {
         The organizer&apos;s platform for small, hyperlocal cultural experiences —
         pottery classes, poetry evenings, heritage walks, folk-art workshops.
       </p>
-      <p className="mt-10 text-sm text-zinc-500 dark:text-zinc-500">
-        Slice 0 — foundation is live. Building the tool next.
-      </p>
+      <div className="mt-10 flex flex-col items-center gap-3">
+        <Link
+          href="/login"
+          className="rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90"
+        >
+          Sign in
+        </Link>
+        <p className="text-xs text-zinc-500 dark:text-zinc-500">
+          Slice 1 — identity &amp; organizer profiles in progress.
+        </p>
+      </div>
     </main>
   );
 }
