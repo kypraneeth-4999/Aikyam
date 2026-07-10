@@ -1,0 +1,11 @@
+# Netlify deploy config for the Aikyam Next.js app.
+# The official Next.js runtime plugin handles SSR, routing, and image optimization.
+
+[build]
+  command = "npm run build"
+
+[build.environment]
+  NODE_VERSION = "22"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"

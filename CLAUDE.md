@@ -1,0 +1,55 @@
+# Aikyam — project guide for Claude
+
+Aikyam is a **mobile-first PWA** and the **organizer's platform** for small,
+hyperlocal cultural events (~10–50 attendees) in Pune, India. Full spec:
+[`docs/JAD.md`](docs/JAD.md). Read it before adding scope.
+
+**Golden rule for any feature:** does this make on-platform strictly better than
+"WhatsApp + GPay"? If not, it's not Phase 1.
+
+## Stack (locked)
+- **Next.js 16** (App Router, TypeScript, `src/`) — SSR event/profile pages are the growth loop.
+- **Supabase** (Postgres + Auth + Storage). Auth = phone OTP + Google only (no passwords).
+- **Razorpay** Standard Checkout → **Route** for split payouts.
+- **WhatsApp Cloud API** (direct) + email for the notification lifecycle.
+- **Tailwind CSS v4**. **Netlify** hosting.
+
+## Conventions
+- **Money is integer paise** everywhere (₹1 = 100). Never floats. Matches Razorpay.
+- **Platform fee is config-driven** — `src/config/app.ts` (`PLATFORM_FEE_BPS`, default 500 = 5%,
+  organizer-absorbed). Never hard-code the percentage in logic.
+- **Payment truth is server-side only** — mark a booking paid only on a signature-verified
+  Razorpay webhook. Never trust a client "success" callback.
+- **RLS is on for every table.** Reads run as the user; privileged / money-moving writes go through
+  server routes using the service-role client (`src/lib/supabase/admin.ts`), which bypasses RLS.
+- **Server-side authz on every mutation** — UI hiding is not authorization.
+- Supabase clients: `client.ts` (browser), `server.ts` (RSC / route handlers), `admin.ts`
+  (service role, server-only — never import from client code).
+
+## Layout
+- `src/app` — routes.  `src/lib/supabase` — clients.  `src/config` — tunable config.
+- `supabase/migrations` — SQL schema (source of truth for the DB).
+- `docs/JAD.md` — the spec (BRD/PRD/FRD/Tech + build sequence).
+- `docs/EXTERNAL-SETUP.md` — the accounts/keys only a human can set up.
+
+## Build sequence (vertical slices — build in order, each ends demoable)
+0. **Foundation** (current): app + schema + auth wiring + deploy.  ← we are here
+1. Identity + organizer profile (P1, P2)
+2. Create + view an event (P3, P4)
+3. Book + pay + ticket (P5, P6, F1)
+4. WhatsApp lifecycle (F3)
+5. Run the day — dashboard, attendee list, QR check-in (P7–P9, F2)
+6. Trust loop — refunds, my tickets, reviews (P8, P10, P11, F4)
+7. Hardening + settings + security pass (P12, §6.5)
+
+Do not start a slice until the previous one is deployed and works end-to-end.
+
+## Security non-negotiables (JAD §6.5)
+Webhook-verified payments · idempotency keys · signed single-use QR tickets ·
+OTP rate limiting · server-side RBAC · PII minimization · atomic capacity decrement ·
+signed expiring URLs for private exports · append-only AuditLog on all money moves.
+
+## Local dev
+- `npm run dev` — http://localhost:3000
+- Copy `.env.example` → `.env.local`, fill in Supabase keys (see `docs/EXTERNAL-SETUP.md`).
+- Apply schema: paste `supabase/migrations/*.sql` into the Supabase SQL editor, or `supabase db push`.
