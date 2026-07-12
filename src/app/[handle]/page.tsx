@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import { cache } from "react";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser, supabaseConfigured } from "@/lib/auth";
 import { normalizeHandleInput } from "@/lib/handles";
 
-type ProfileRow = {
+type Profile = {
   id: string;
   user_id: string;
   handle: string;
@@ -15,23 +16,36 @@ type ProfileRow = {
   intro_video_url: string | null;
   social_links: Record<string, string> | null;
   verification_status: "unverified" | "verified";
-  users: { name: string | null } | null;
+  name: string | null;
 };
 
 const fetchProfile = cache(
-  async (handleParam: string): Promise<ProfileRow | null> => {
+  async (handleParam: string): Promise<Profile | null> => {
     if (!supabaseConfigured()) return null;
     const handle = normalizeHandleInput(decodeURIComponent(handleParam));
     if (!handle) return null;
+
     const supabase = await createClient();
     const { data } = await supabase
       .from("organizer_profiles")
       .select(
-        "id, user_id, handle, bio, city, profile_photo, intro_video_url, social_links, verification_status, users(name)",
+        "id, user_id, handle, bio, city, profile_photo, intro_video_url, social_links, verification_status",
       )
       .eq("handle_normalised", handle)
       .maybeSingle();
-    return (data as ProfileRow | null) ?? null;
+    if (!data) return null;
+
+    // The organizer's display name lives in the private `users` table (RLS
+    // restricts it to the owner). Fetch just the name server-side for the
+    // public storefront — no other user columns are exposed.
+    const admin = createAdminClient();
+    const { data: u } = await admin
+      .from("users")
+      .select("name")
+      .eq("id", data.user_id)
+      .maybeSingle();
+
+    return { ...(data as Omit<Profile, "name">), name: u?.name ?? null };
   },
 );
 
@@ -44,23 +58,24 @@ export async function generateMetadata({
   const profile = await fetchProfile(handle);
   if (!profile) return { title: "Profile not found" };
 
-  const name = profile.users?.name ?? profile.handle;
-  const title = `${name} · Aikyam`;
+  const name = profile.name ?? profile.handle;
+  const ogTitle = `${name} · Aikyam`;
   const description =
     profile.bio ?? `${name} hosts cultural experiences on Aikyam.`;
   const images = profile.profile_photo ? [profile.profile_photo] : undefined;
 
   return {
-    title,
+    // Plain string → the layout template appends " · Aikyam" once.
+    title: name,
     description,
     openGraph: {
-      title,
+      title: ogTitle,
       description,
       type: "profile",
       url: `/@${profile.handle}`,
       images,
     },
-    twitter: { card: "summary", title, description, images },
+    twitter: { card: "summary", title: ogTitle, description, images },
   };
 }
 
@@ -75,7 +90,7 @@ export default async function OrganizerProfilePage({
 
   const user = await getCurrentUser();
   const isOwner = user?.id === profile.user_id;
-  const name = profile.users?.name ?? profile.handle;
+  const name = profile.name ?? profile.handle;
   const social = profile.social_links ?? {};
 
   return (
