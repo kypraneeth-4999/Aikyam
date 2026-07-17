@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
 import { cache } from "react";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser, supabaseConfigured } from "@/lib/auth";
 import { normalizeHandleInput } from "@/lib/handles";
+import { formatEventShort } from "@/lib/datetime";
+import { formatINR } from "@/lib/money";
 
 type Profile = {
   id: string;
@@ -17,6 +20,15 @@ type Profile = {
   social_links: Record<string, string> | null;
   verification_status: "unverified" | "verified";
   name: string | null;
+};
+
+type EventCard = {
+  slug: string;
+  title: string;
+  category: string;
+  starts_at: string | null;
+  price: number;
+  is_free: boolean;
 };
 
 const fetchProfile = cache(
@@ -35,9 +47,6 @@ const fetchProfile = cache(
       .maybeSingle();
     if (!data) return null;
 
-    // The organizer's display name lives in the private `users` table (RLS
-    // restricts it to the owner). Fetch just the name server-side for the
-    // public storefront — no other user columns are exposed.
     const admin = createAdminClient();
     const { data: u } = await admin
       .from("users")
@@ -48,6 +57,25 @@ const fetchProfile = cache(
     return { ...(data as Omit<Profile, "name">), name: u?.name ?? null };
   },
 );
+
+async function fetchUpcomingEvents(organizerId: string): Promise<EventCard[]> {
+  const supabase = await createClient();
+  const { data: links } = await supabase
+    .from("event_organizers")
+    .select("event_id")
+    .eq("organizer_id", organizerId);
+  const ids = (links ?? []).map((l) => l.event_id as string);
+  if (!ids.length) return [];
+
+  const { data } = await supabase
+    .from("events")
+    .select("slug, title, category, starts_at, price, is_free")
+    .in("id", ids)
+    .eq("status", "published")
+    .gte("starts_at", new Date().toISOString())
+    .order("starts_at", { ascending: true });
+  return (data ?? []) as EventCard[];
+}
 
 export async function generateMetadata({
   params,
@@ -65,7 +93,6 @@ export async function generateMetadata({
   const images = profile.profile_photo ? [profile.profile_photo] : undefined;
 
   return {
-    // Plain string → the layout template appends " · Aikyam" once.
     title: name,
     description,
     openGraph: {
@@ -88,7 +115,10 @@ export default async function OrganizerProfilePage({
   const profile = await fetchProfile(handle);
   if (!profile) notFound();
 
-  const user = await getCurrentUser();
+  const [user, events] = await Promise.all([
+    getCurrentUser(),
+    fetchUpcomingEvents(profile.id),
+  ]);
   const isOwner = user?.id === profile.user_id;
   const name = profile.name ?? profile.handle;
   const social = profile.social_links ?? {};
@@ -145,10 +175,15 @@ export default async function OrganizerProfilePage({
         <div className="mt-6 rounded-lg border border-black/10 p-4 text-sm dark:border-white/15">
           <p className="font-medium">This is your public page.</p>
           <p className="mt-1 text-zinc-500">
-            Put{" "}
-            <span className="font-mono">aikyam.app/@{profile.handle}</span> in
-            your Instagram bio. Event creation arrives in Slice 2.
+            Put <span className="font-mono">aikyam.app/@{profile.handle}</span>{" "}
+            in your Instagram bio.
           </p>
+          <Link
+            href="/organizer/events/new"
+            className="mt-3 inline-block rounded-lg bg-foreground px-4 py-2 text-xs font-medium text-background"
+          >
+            Create an event
+          </Link>
         </div>
       )}
 
@@ -156,7 +191,30 @@ export default async function OrganizerProfilePage({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
           Upcoming events
         </h2>
-        <p className="mt-2 text-sm text-zinc-500">No upcoming events yet.</p>
+        {events.length === 0 ? (
+          <p className="mt-2 text-sm text-zinc-500">No upcoming events yet.</p>
+        ) : (
+          <ul className="mt-3 space-y-2">
+            {events.map((ev) => (
+              <li key={ev.slug}>
+                <Link
+                  href={`/e/${ev.slug}`}
+                  className="flex items-center justify-between gap-3 rounded-lg border border-black/10 p-3 transition-colors hover:bg-black/[.02] dark:border-white/15 dark:hover:bg-white/[.03]"
+                >
+                  <div>
+                    <p className="text-sm font-medium">{ev.title}</p>
+                    <p className="text-xs text-zinc-500">
+                      {ev.category} · {formatEventShort(ev.starts_at)}
+                    </p>
+                  </div>
+                  <span className="shrink-0 text-sm font-medium">
+                    {ev.is_free ? "Free" : formatINR(ev.price)}
+                  </span>
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
     </main>
   );
