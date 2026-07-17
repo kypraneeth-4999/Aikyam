@@ -264,20 +264,23 @@ export default async function EventPage({
             </p>
           )}
         </div>
-        <button
-          type="button"
-          disabled
-          className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background disabled:opacity-50"
-          title="Booking opens in the next slice"
-        >
-          {isCancelled ? "Cancelled" : isPast ? "Ended" : soldOut ? "Sold out" : "Reserve"}
-        </button>
+        {!isCancelled && !isPast && !soldOut ? (
+          <Link
+            href={`/e/${ev.slug}/book`}
+            className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background"
+          >
+            Reserve
+          </Link>
+        ) : (
+          <button
+            type="button"
+            disabled
+            className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background disabled:opacity-50"
+          >
+            {isCancelled ? "Cancelled" : isPast ? "Ended" : "Sold out"}
+          </button>
+        )}
       </div>
-      {!isCancelled && !isPast && !soldOut && (
-        <p className="mt-2 text-center text-xs text-zinc-500">
-          Booking &amp; payment arrive in the next slice.
-        </p>
-      )}
     </main>
   );
 }
