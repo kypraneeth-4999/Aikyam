@@ -1,9 +1,66 @@
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { createClient } from "@/lib/supabase/server";
+import { fetchDiscoverEvents, type DiscoverEvent } from "@/lib/discovery";
+import { CATEGORIES } from "@/config/categories";
+import { formatEventShort } from "@/lib/datetime";
+import { formatINR } from "@/lib/money";
 
-export default async function Home() {
-  const user = await getCurrentUser();
+function EventCard({ ev, featured = false }: { ev: DiscoverEvent; featured?: boolean }) {
+  const img = ev.cover_media ?? ev.photos?.[0] ?? null;
+  return (
+    <Link
+      href={`/e/${ev.slug}`}
+      className="group block overflow-hidden rounded-xl border border-black/10 transition-colors hover:bg-black/[.02] dark:border-white/15 dark:hover:bg-white/[.03]"
+    >
+      <div
+        className={`relative flex ${featured ? "aspect-[16/7]" : "aspect-[16/9]"} items-center justify-center bg-zinc-100 text-sm text-zinc-400 dark:bg-zinc-900`}
+      >
+        {img ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={img} alt={ev.title} className="h-full w-full object-cover" />
+        ) : (
+          ev.category
+        )}
+        <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white">
+          {ev.category}
+        </span>
+        {ev.is_free && (
+          <span className="absolute right-3 top-3 rounded-full bg-green-600 px-2 py-1 text-xs font-medium text-white">
+            Free
+          </span>
+        )}
+      </div>
+      <div className="p-4">
+        <h3 className={`font-semibold ${featured ? "text-xl" : "text-base"}`}>{ev.title}</h3>
+        <p className="mt-1 text-xs text-zinc-500">
+          {formatEventShort(ev.starts_at)}
+          {ev.host ? ` · ${ev.host.name}` : ""}
+        </p>
+        <p className="mt-2 text-sm font-medium">
+          {ev.is_free ? "Free" : formatINR(ev.price)}
+        </p>
+      </div>
+    </Link>
+  );
+}
+
+export default async function Home({
+  searchParams,
+}: {
+  searchParams: Promise<{ category?: string }>;
+}) {
+  const { category } = await searchParams;
+  const activeCategory =
+    typeof category === "string" && (CATEGORIES as readonly string[]).includes(category)
+      ? category
+      : undefined;
+
+  const [user, events] = await Promise.all([
+    getCurrentUser(),
+    fetchDiscoverEvents(activeCategory),
+  ]);
+
   let handle: string | null = null;
   if (user) {
     const supabase = await createClient();
@@ -15,43 +72,87 @@ export default async function Home() {
     handle = data?.handle ?? null;
   }
 
-  const cta = "rounded-full bg-foreground px-6 py-2.5 text-sm font-medium text-background transition-opacity hover:opacity-90";
+  const [featured, ...rest] = events;
+  const chip =
+    "rounded-full border px-3 py-1 text-sm transition-colors border-black/10 hover:bg-black/[.04] dark:border-white/15 dark:hover:bg-white/[.06]";
+  const chipActive = "rounded-full bg-foreground px-3 py-1 text-sm font-medium text-background";
 
   return (
-    <main className="flex flex-1 flex-col items-center justify-center px-6 py-24 text-center">
-      <span className="mb-5 inline-flex items-center rounded-full border border-black/10 px-3 py-1 text-xs font-medium uppercase tracking-wider text-zinc-500 dark:border-white/15 dark:text-zinc-400">
-        Pre-launch · Pune
-      </span>
-      <h1 className="text-5xl font-semibold tracking-tight sm:text-6xl">Aikyam</h1>
-      <p className="mt-4 max-w-xl text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-        The organizer&apos;s platform for small, hyperlocal cultural experiences —
-        pottery classes, poetry evenings, heritage walks, folk-art workshops.
-      </p>
+    <div className="flex flex-1 flex-col">
+      {/* Header */}
+      <header className="flex items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/10">
+        <Link href="/" className="text-lg font-semibold tracking-tight">
+          Aikyam
+        </Link>
+        <nav className="flex items-center gap-4 text-sm">
+          {user && handle && (
+            <Link href="/organizer/events/new" className="font-medium">
+              List event
+            </Link>
+          )}
+          {user && !handle && (
+            <Link href="/organizer/new" className="font-medium">
+              Become an organizer
+            </Link>
+          )}
+          {user && handle && (
+            <Link href={`/@${handle}`} className="text-zinc-500">
+              My page
+            </Link>
+          )}
+          {!user && (
+            <Link href="/login" className="font-medium">
+              Sign in
+            </Link>
+          )}
+        </nav>
+      </header>
 
-      <div className="mt-10 flex flex-col items-center gap-3">
-        {!user && (
-          <Link href="/login" className={cta}>
-            Sign in
+      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
+        <div className="flex items-baseline justify-between">
+          <h1 className="text-3xl font-semibold tracking-tight">Upcoming events</h1>
+          <span className="text-sm text-zinc-500">
+            {events.length} event{events.length === 1 ? "" : "s"} found
+          </span>
+        </div>
+
+        {/* Category filter */}
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link href="/" className={activeCategory ? chip : chipActive}>
+            All
           </Link>
+          {CATEGORIES.map((c) => (
+            <Link
+              key={c}
+              href={`/?category=${encodeURIComponent(c)}`}
+              className={activeCategory === c ? chipActive : chip}
+            >
+              {c}
+            </Link>
+          ))}
+        </div>
+
+        {events.length === 0 ? (
+          <p className="mt-10 text-sm text-zinc-500">
+            No upcoming events yet{activeCategory ? ` in ${activeCategory}` : ""}. Check back soon.
+          </p>
+        ) : (
+          <>
+            {featured && (
+              <div className="mt-8">
+                <EventCard ev={featured} featured />
+              </div>
+            )}
+            {rest.length > 0 && (
+              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {rest.map((ev) => (
+                  <EventCard key={ev.id} ev={ev} />
+                ))}
+              </div>
+            )}
+          </>
         )}
-        {user && !handle && (
-          <Link href="/organizer/new" className={cta}>
-            Create your organizer page
-          </Link>
-        )}
-        {user && handle && (
-          <Link href={`/@${handle}`} className={cta}>
-            View your organizer page
-          </Link>
-        )}
-        {user && (
-          <form action="/auth/signout" method="post">
-            <button type="submit" className="text-xs text-zinc-500 underline">
-              Sign out
-            </button>
-          </form>
-        )}
-      </div>
-    </main>
+      </main>
+    </div>
   );
 }
