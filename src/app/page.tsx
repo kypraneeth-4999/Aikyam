@@ -1,45 +1,56 @@
 import Link from "next/link";
-import { getCurrentUser } from "@/lib/auth";
-import { createClient } from "@/lib/supabase/server";
 import { fetchDiscoverEvents, type DiscoverEvent } from "@/lib/discovery";
 import { CATEGORIES } from "@/config/categories";
-import { formatEventShort } from "@/lib/datetime";
+import { formatEventShort, formatEventWhen } from "@/lib/datetime";
 import { formatINR } from "@/lib/money";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
-function EventCard({ ev, featured = false }: { ev: DiscoverEvent; featured?: boolean }) {
+function EventCard({ ev }: { ev: DiscoverEvent }) {
   const img = ev.cover_media ?? ev.photos?.[0] ?? null;
   return (
     <Link
       href={`/e/${ev.slug}`}
-      className="group block overflow-hidden rounded-xl border border-black/10 transition-colors hover:bg-black/[.02] dark:border-white/15 dark:hover:bg-white/[.03]"
+      className="group block overflow-hidden rounded-2xl border border-border bg-surface transition-all duration-300 hover:-translate-y-1 hover:border-gold/30 hover:shadow-[0_8px_32px_rgba(244,160,28,0.1)]"
     >
-      <div
-        className={`relative flex ${featured ? "aspect-[16/7]" : "aspect-[16/9]"} items-center justify-center bg-zinc-100 text-sm text-zinc-400 dark:bg-zinc-900`}
-      >
+      <div className="relative h-48 overflow-hidden bg-surface2">
         {img ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={img} alt={ev.title} className="h-full w-full object-cover" />
+          <img
+            src={img}
+            alt={ev.title}
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         ) : (
-          ev.category
+          <div className="flex h-full w-full items-center justify-center font-display text-3xl text-muted/40">
+            {ev.category}
+          </div>
         )}
-        <span className="absolute left-3 top-3 rounded-full bg-black/70 px-2 py-1 text-xs font-medium text-white">
-          {ev.category}
-        </span>
+        <div className="absolute inset-0 bg-gradient-to-t from-ink/60 to-transparent" />
         {ev.is_free && (
-          <span className="absolute right-3 top-3 rounded-full bg-green-600 px-2 py-1 text-xs font-medium text-white">
+          <span className="absolute left-3 top-3 rounded-full bg-emerald-600/75 px-2.5 py-1 text-xs font-semibold text-white">
             Free
           </span>
         )}
+        <span className="absolute right-3 top-3 rounded-full border border-border bg-ink/60 px-2.5 py-1 text-xs text-cream/80 backdrop-blur-sm">
+          {ev.category}
+        </span>
       </div>
-      <div className="p-4">
-        <h3 className={`font-semibold ${featured ? "text-xl" : "text-base"}`}>{ev.title}</h3>
-        <p className="mt-1 text-xs text-zinc-500">
-          {formatEventShort(ev.starts_at)}
-          {ev.host ? ` · ${ev.host.name}` : ""}
-        </p>
-        <p className="mt-2 text-sm font-medium">
-          {ev.is_free ? "Free" : formatINR(ev.price)}
-        </p>
+      <div className="p-5">
+        <h3 className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-cream transition-colors group-hover:text-gold">
+          {ev.title}
+        </h3>
+        {ev.host && (
+          <p className="mb-4 truncate text-xs text-muted">by {ev.host.name}</p>
+        )}
+        <div className="flex items-center justify-between gap-2">
+          <span className="truncate rounded-full bg-gold/10 px-2.5 py-1 text-xs font-medium text-gold">
+            {formatEventShort(ev.starts_at)}
+          </span>
+          <span className="shrink-0 text-sm font-semibold text-cream">
+            {ev.is_free ? "Free" : formatINR(ev.price)}
+          </span>
+        </div>
       </div>
     </Link>
   );
@@ -52,107 +63,164 @@ export default async function Home({
 }) {
   const { category } = await searchParams;
   const activeCategory =
-    typeof category === "string" && (CATEGORIES as readonly string[]).includes(category)
+    typeof category === "string" &&
+    (CATEGORIES as readonly string[]).includes(category)
       ? category
       : undefined;
 
-  const [user, events] = await Promise.all([
-    getCurrentUser(),
-    fetchDiscoverEvents(activeCategory),
-  ]);
+  const events = await fetchDiscoverEvents(activeCategory);
+  const featured = events[0];
+  const heroImg = featured?.cover_media ?? featured?.photos?.[0] ?? null;
 
-  let handle: string | null = null;
-  if (user) {
-    const supabase = await createClient();
-    const { data } = await supabase
-      .from("organizer_profiles")
-      .select("handle")
-      .eq("user_id", user.id)
-      .maybeSingle();
-    handle = data?.handle ?? null;
-  }
-
-  const [featured, ...rest] = events;
-  const chip =
-    "rounded-full border px-3 py-1 text-sm transition-colors border-black/10 hover:bg-black/[.04] dark:border-white/15 dark:hover:bg-white/[.06]";
-  const chipActive = "rounded-full bg-foreground px-3 py-1 text-sm font-medium text-background";
+  const pillBase =
+    "flex items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium transition-all";
+  const pillActive = "bg-gold text-ink shadow-[0_0_20px_rgba(244,160,28,0.35)]";
+  const pillIdle =
+    "border border-border bg-surface text-muted hover:border-gold/30 hover:text-cream";
 
   return (
-    <div className="flex flex-1 flex-col">
-      {/* Header */}
-      <header className="flex items-center justify-between border-b border-black/10 px-6 py-4 dark:border-white/10">
-        <Link href="/" className="text-lg font-semibold tracking-tight">
-          Aikyam
-        </Link>
-        <nav className="flex items-center gap-4 text-sm">
-          {user && handle && (
-            <Link href="/organizer/events/new" className="font-medium">
-              List event
-            </Link>
-          )}
-          {user && !handle && (
-            <Link href="/organizer/new" className="font-medium">
-              Become an organizer
-            </Link>
-          )}
-          {user && handle && (
-            <Link href={`/@${handle}`} className="text-zinc-500">
-              My page
-            </Link>
-          )}
-          {!user && (
-            <Link href="/login" className="font-medium">
-              Sign in
-            </Link>
-          )}
-        </nav>
-      </header>
+    <>
+      <SiteHeader />
 
-      <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-8">
-        <div className="flex items-baseline justify-between">
-          <h1 className="text-3xl font-semibold tracking-tight">Upcoming events</h1>
-          <span className="text-sm text-zinc-500">
-            {events.length} event{events.length === 1 ? "" : "s"} found
-          </span>
-        </div>
+      {/* HERO */}
+      {featured ? (
+        <section className="relative h-[70vh] overflow-hidden">
+          <div className="absolute inset-0 bg-surface2">
+            {heroImg && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={heroImg}
+                alt={featured.title}
+                className="h-full w-full object-cover opacity-55"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/65 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-transparent" />
+          </div>
+          <div
+            className="pointer-events-none absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage:
+                "linear-gradient(to right, #F4A01C 1px, transparent 1px), linear-gradient(to bottom, #F4A01C 1px, transparent 1px)",
+              backgroundSize: "80px 80px",
+            }}
+          />
+          <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-16">
+            <div className="max-w-2xl">
+              <span className="mb-5 inline-block rounded-full border border-gold/25 bg-gold/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-gold">
+                ✦ Featured
+              </span>
+              <h1 className="mb-4 font-display text-5xl leading-none text-cream md:text-7xl">
+                {featured.title}
+              </h1>
+              <p className="mb-8 text-sm text-muted">
+                {formatEventWhen(featured.starts_at, null)}
+              </p>
+              <div className="flex flex-wrap items-center gap-4">
+                <Link
+                  href={`/e/${featured.slug}`}
+                  className="rounded-full bg-gold px-7 py-3 font-semibold text-ink transition-all hover:scale-105 hover:bg-saffron active:scale-95"
+                >
+                  {featured.is_free
+                    ? "Get free pass"
+                    : `Get tickets — ${formatINR(featured.price)}`}
+                </Link>
+                <a
+                  href="#events"
+                  className="rounded-full border border-cream/20 px-7 py-3 text-cream transition-all hover:bg-cream/10"
+                >
+                  Explore all events
+                </a>
+              </div>
+            </div>
+          </div>
+        </section>
+      ) : (
+        <section className="mx-auto max-w-7xl px-6 py-20 text-center">
+          <h1 className="font-display text-4xl text-cream sm:text-6xl">
+            India&apos;s cultural events
+          </h1>
+          <p className="mt-4 text-muted">
+            Discover and book authentic local experiences. Be the first to list one.
+          </p>
+        </section>
+      )}
 
-        {/* Category filter */}
-        <div className="mt-4 flex flex-wrap gap-2">
-          <Link href="/" className={activeCategory ? chip : chipActive}>
+      <main className="mx-auto max-w-7xl px-6 py-14">
+        {/* CATEGORY PILLS */}
+        <div id="events" className="mb-10 flex gap-2 overflow-x-auto pb-2">
+          <Link href="/" className={`${pillBase} ${!activeCategory ? pillActive : pillIdle}`}>
             All
           </Link>
           {CATEGORIES.map((c) => (
             <Link
               key={c}
               href={`/?category=${encodeURIComponent(c)}`}
-              className={activeCategory === c ? chipActive : chip}
+              className={`${pillBase} ${activeCategory === c ? pillActive : pillIdle}`}
             >
               {c}
             </Link>
           ))}
         </div>
 
+        {/* GRID HEADER */}
+        <div className="mb-7 flex items-baseline justify-between">
+          <h2 className="font-display text-3xl text-cream">
+            {activeCategory ?? "Upcoming events"}
+          </h2>
+          <span className="text-sm text-muted">
+            {events.length} event{events.length === 1 ? "" : "s"} found
+          </span>
+        </div>
+
         {events.length === 0 ? (
-          <p className="mt-10 text-sm text-zinc-500">
-            No upcoming events yet{activeCategory ? ` in ${activeCategory}` : ""}. Check back soon.
-          </p>
+          <div className="py-24 text-center text-muted">
+            <p className="mb-5 text-5xl opacity-40">◎</p>
+            <p>
+              No events yet{activeCategory ? ` in ${activeCategory}` : ""}. Check
+              back soon.
+            </p>
+          </div>
         ) : (
-          <>
-            {featured && (
-              <div className="mt-8">
-                <EventCard ev={featured} featured />
-              </div>
-            )}
-            {rest.length > 0 && (
-              <div className="mt-6 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                {rest.map((ev) => (
-                  <EventCard key={ev.id} ev={ev} />
-                ))}
-              </div>
-            )}
-          </>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {events.map((ev) => (
+              <EventCard key={ev.id} ev={ev} />
+            ))}
+          </div>
         )}
+
+        {/* ORGANISER CTA */}
+        <section className="mt-16 overflow-hidden rounded-2xl">
+          <div
+            className="relative p-10 md:p-14"
+            style={{
+              background:
+                "linear-gradient(135deg, #1E0A00 0%, #2A0E1A 50%, #0E0A20 100%)",
+            }}
+          >
+            <div className="relative max-w-xl">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-gold">
+                For organisers
+              </p>
+              <h3 className="mb-4 font-display text-4xl leading-tight text-cream">
+                Host your event on Aikyam
+              </h3>
+              <p className="mb-7 text-sm leading-relaxed text-cream/60">
+                A beautiful event page, payments, and QR check-in — free to start.
+                Put your link in your Instagram bio and start selling.
+              </p>
+              <Link
+                href="/organizer/new"
+                className="rounded-full bg-gold px-6 py-3 text-sm font-semibold text-ink transition-all hover:scale-105 hover:bg-saffron active:scale-95"
+              >
+                Become an organiser
+              </Link>
+            </div>
+          </div>
+        </section>
       </main>
-    </div>
+
+      <SiteFooter />
+    </>
   );
 }

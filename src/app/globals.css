@@ -1,26 +1,38 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Aikyam design system — from the Figma "UTSAV" export (docs/design-reference).
+   Fonts are loaded via next/font in layout.tsx and exposed as CSS variables. */
+@theme {
+  --font-display: var(--font-abril);
+  --font-sans: var(--font-poppins);
+
+  --color-ink: #0b0914;
+  --color-surface: #14102a;
+  --color-surface2: #1e1a35;
+  --color-gold: #f4a01c;
+  --color-saffron: #ff6b00;
+  --color-crimson: #e8334a;
+  --color-cream: #f5edd6;
+  --color-parchment: #e8d9b8;
+  --color-muted: #7a6e8a;
+  --color-border: #2a2040;
+
+  /* Back-compat aliases so existing bg-background/bg-foreground utilities read dark. */
+  --color-background: #0b0914;
+  --color-foreground: #f5edd6;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
-
+html,
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--color-ink);
+  color: var(--color-cream);
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+
+/* Hide scrollbars (matches the reference design). */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
 }

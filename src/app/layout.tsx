@@ -1,24 +1,28 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Abril_Fatface, Poppins } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const abril = Abril_Fatface({
+  weight: "400",
   subsets: ["latin"],
+  variable: "--font-abril",
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const poppins = Poppins({
+  weight: ["300", "400", "500", "600", "700"],
   subsets: ["latin"],
+  variable: "--font-poppins",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: {
-    default: "Aikyam — the organizer's platform for cultural events",
+    default: "Aikyam — cultural events across India",
     template: "%s · Aikyam",
   },
   description:
-    "Aikyam is the organizer's platform for small, hyperlocal cultural events in India — beautiful event pages, payments, WhatsApp automation, and QR check-in.",
+    "Aikyam is a marketplace for India's cultural events — classical concerts, dance, theatre, folk performances, heritage walks, and craft fairs. Discover, book, and host.",
   applicationName: "Aikyam",
   manifest: "/manifest.webmanifest",
   metadataBase: new URL(
@@ -28,7 +32,7 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#0f172a",
+  themeColor: "#0b0914",
 };
 
 export default function RootLayout({
@@ -39,9 +43,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${abril.variable} ${poppins.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">{children}</body>
+      <body className="flex min-h-full flex-col bg-ink text-cream">
+        {children}
+      </body>
     </html>
   );
 }
