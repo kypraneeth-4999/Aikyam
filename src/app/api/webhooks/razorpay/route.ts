@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { issueTicketForBooking } from "@/lib/bookings";
+import { sendTicketEmail } from "@/lib/notifications";
 
 /**
  * Razorpay webhook — the SINGLE source of payment truth (JAD §6.5).
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       .eq("id", booking.id)
       .eq("payment_status", "pending");
     await issueTicketForBooking(admin, booking.id, booking.event_id);
+    await sendTicketEmail(admin, booking.id);
     await admin.from("audit_logs").insert({
       actor_user_id: null,
       action: "booking.paid",

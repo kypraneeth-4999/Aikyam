@@ -4,6 +4,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 import { platformFeePaise } from "@/config/app";
 import { issueTicketForBooking } from "@/lib/bookings";
+import { sendTicketEmail } from "@/lib/notifications";
 
 /** Create a booking: atomic pending row, then Razorpay order (paid) or
  *  immediate confirmation + ticket (free). Payment truth still comes from the
@@ -67,6 +68,7 @@ export async function POST(request: Request) {
       .eq("id", booking.id)
       .eq("payment_status", "pending");
     const ticketId = await issueTicketForBooking(admin, booking.id, ev.id);
+    await sendTicketEmail(admin, booking.id);
     return NextResponse.json({ bookingId: booking.id, status: "paid", ticketId });
   }
 

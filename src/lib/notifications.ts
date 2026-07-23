@@ -1,0 +1,79 @@
+import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/email";
+import { formatEventWhen } from "@/lib/datetime";
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function ticketEmailHtml(o: {
+  name: string | null;
+  title: string;
+  when: string;
+  venue: string | null;
+  seats: number;
+  ticketUrl: string;
+}): string {
+  return `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#14102a;">
+    <h1 style="font-size:20px;margin:0 0 4px;">You're booked! 🎉</h1>
+    <p style="color:#666;margin:0 0 20px;">Hi ${esc(o.name ?? "there")}, your ticket for <strong>${esc(o.title)}</strong> is ready.</p>
+    <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:20px;">
+      <p style="margin:0 0 6px;font-weight:600;">${esc(o.title)}</p>
+      <p style="margin:0 0 4px;color:#555;">${esc(o.when)}</p>
+      ${o.venue ? `<p style="margin:0 0 4px;color:#555;">${esc(o.venue)}</p>` : ""}
+      <p style="margin:0;color:#555;">${o.seats} seat${o.seats === 1 ? "" : "s"}</p>
+    </div>
+    <a href="${o.ticketUrl}" style="display:inline-block;background:#F4A01C;color:#0B0914;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:999px;">View your ticket &amp; QR</a>
+    <p style="color:#999;font-size:12px;margin-top:24px;">Show the QR code at the door. — Aikyam</p>
+  </div>`;
+}
+
+/**
+ * Best-effort booking-confirmation email with the ticket link. Never throws —
+ * a failed email must not fail the booking.
+ */
+export async function sendTicketEmail(admin: Admin, bookingId: string): Promise<void> {
+  try {
+    const { data: booking } = await admin
+      .from("bookings")
+      .select("id, attendee_user_id, event_id, seats")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!booking) return;
+
+    const [{ data: ticket }, { data: user }, { data: ev }] = await Promise.all([
+      admin.from("tickets").select("id").eq("booking_id", bookingId).maybeSingle(),
+      admin.from("users").select("email, name").eq("id", booking.attendee_user_id).maybeSingle(),
+      admin
+        .from("events")
+        .select("title, starts_at, ends_at, venue_name")
+        .eq("id", booking.event_id)
+        .maybeSingle(),
+    ]);
+    if (!ticket || !user?.email || !ev) return;
+
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const html = ticketEmailHtml({
+      name: user.name,
+      title: ev.title,
+      when: formatEventWhen(ev.starts_at, ev.ends_at),
+      venue: ev.venue_name,
+      seats: booking.seats,
+      ticketUrl: `${siteUrl}/tickets/${ticket.id}`,
+    });
+    await sendEmail({
+      to: user.email,
+      subject: `Your ticket for ${ev.title}`,
+      html,
+    });
+  } catch (e) {
+    console.error("[notifications] sendTicketEmail error:", e);
+  }
+}
