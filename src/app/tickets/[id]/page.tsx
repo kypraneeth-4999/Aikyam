@@ -63,14 +63,17 @@ export default async function TicketPage({
         ? "Cancelled"
         : "Valid";
 
+  const calBtn =
+    "rounded-xl border border-border bg-surface px-3 py-2 text-center text-sm font-medium text-cream transition-colors hover:border-gold/30";
+
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-10">
-      <div className="rounded-2xl border border-black/10 p-6 text-center dark:border-white/15">
+      <div className="rounded-2xl border border-border bg-surface p-6 text-center">
         <span
-          className={`inline-block rounded-full px-3 py-1 text-xs font-medium ${
+          className={`inline-block rounded-full px-3 py-1 text-xs font-semibold ${
             ticket.status === "valid"
-              ? "bg-green-100 text-green-700 dark:bg-green-950/40 dark:text-green-300"
-              : "bg-zinc-200 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300"
+              ? "bg-emerald-600/25 text-emerald-300"
+              : "bg-surface2 text-muted"
           }`}
         >
           {statusLabel}
@@ -82,44 +85,35 @@ export default async function TicketPage({
           alt="Ticket QR code"
           width={240}
           height={240}
-          className="mx-auto mt-4 h-60 w-60 rounded-lg bg-white p-2"
+          className="mx-auto mt-4 h-60 w-60 rounded-xl bg-white p-2"
         />
 
-        <h1 className="mt-4 text-lg font-semibold tracking-tight">{ev?.title}</h1>
-        <p className="mt-1 text-sm text-zinc-500">
+        <h1 className="mt-4 font-display text-xl text-cream">{ev?.title}</h1>
+        <p className="mt-1 text-sm text-muted">
           {formatEventWhen(ev?.starts_at ?? null, ev?.ends_at ?? null)}
         </p>
         {ev?.venue_name && (
-          <p className="mt-1 text-sm text-zinc-500">
+          <p className="mt-1 text-sm text-muted">
             {ev.venue_name}
             {ev.landmark ? ` · ${ev.landmark}` : ""}
           </p>
         )}
-        <p className="mt-3 text-sm">
+        <p className="mt-3 text-sm text-cream">
           {booking.seats} seat{booking.seats === 1 ? "" : "s"}
         </p>
         {guests.length > 0 && (
-          <p className="text-xs text-zinc-500">{guests.join(", ")}</p>
+          <p className="text-xs text-muted">{guests.join(", ")}</p>
         )}
       </div>
 
-      <div className="mt-5 grid grid-cols-2 gap-3 text-sm">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         {cal && (
-          <a
-            href={googleCalUrl(cal)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="rounded-lg border border-black/10 px-3 py-2 text-center font-medium dark:border-white/15"
-          >
-            Add to Google Calendar
+          <a href={googleCalUrl(cal)} target="_blank" rel="noopener noreferrer" className={calBtn}>
+            Add to Calendar
           </a>
         )}
         {cal && (
-          <a
-            href={icsDataUri(cal)}
-            download={`${ev?.slug ?? "event"}.ics`}
-            className="rounded-lg border border-black/10 px-3 py-2 text-center font-medium dark:border-white/15"
-          >
+          <a href={icsDataUri(cal)} download={`${ev?.slug ?? "event"}.ics`} className={calBtn}>
             Download .ics
           </a>
         )}
@@ -128,19 +122,19 @@ export default async function TicketPage({
             href={ev.maps_url}
             target="_blank"
             rel="noopener noreferrer nofollow"
-            className="col-span-2 rounded-lg border border-black/10 px-3 py-2 text-center font-medium dark:border-white/15"
+            className={`col-span-2 ${calBtn}`}
           >
             Get directions
           </a>
         )}
       </div>
 
-      <p className="mt-4 text-center text-xs text-zinc-500">
-        Show this QR at the door. WhatsApp + email delivery arrive in the next slice.
+      <p className="mt-4 text-center text-xs text-muted">
+        Show this QR at the door. WhatsApp + email delivery arrive in a later slice.
       </p>
       {ev?.slug && (
         <p className="mt-2 text-center">
-          <Link href={`/e/${ev.slug}`} className="text-sm text-zinc-500 underline">
+          <Link href={`/e/${ev.slug}`} className="text-sm text-gold transition-colors hover:text-saffron">
             View event
           </Link>
         </p>

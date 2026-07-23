@@ -19,8 +19,8 @@ export default async function NewEventPage() {
 
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-6 py-12">
-      <h1 className="text-2xl font-semibold tracking-tight">Create an event</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <h1 className="font-display text-3xl text-cream">Create an event</h1>
+      <p className="mt-1 text-sm text-muted">
         Publish in a couple of minutes — or save a draft and finish later.
       </p>
       <EventForm />

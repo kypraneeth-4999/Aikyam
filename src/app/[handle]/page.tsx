@@ -126,19 +126,19 @@ export default async function OrganizerProfilePage({
   return (
     <main className="mx-auto w-full max-w-lg flex-1 px-6 py-12">
       <div className="flex items-center gap-4">
-        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full bg-zinc-200 text-xl font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
+        <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-gold/20 bg-gold/10 font-display text-2xl text-gold">
           {name.slice(0, 1).toUpperCase()}
         </div>
         <div>
           <div className="flex items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight">{name}</h1>
+            <h1 className="font-display text-2xl text-cream">{name}</h1>
             {profile.verification_status === "verified" && (
-              <span title="Verified" className="text-sm text-blue-600">
+              <span title="Verified" className="text-sm text-gold">
                 ✓
               </span>
             )}
           </div>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-muted">
             @{profile.handle}
             {profile.city ? ` · ${profile.city}` : ""}
           </p>
@@ -146,25 +146,23 @@ export default async function OrganizerProfilePage({
       </div>
 
       {profile.bio && (
-        <p className="mt-5 text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          {profile.bio}
-        </p>
+        <p className="mt-5 text-sm leading-6 text-muted">{profile.bio}</p>
       )}
 
       {(social.instagram || social.youtube || social.website) && (
         <div className="mt-4 flex flex-wrap gap-3 text-sm">
           {social.instagram && (
-            <a className="underline" href={social.instagram} target="_blank" rel="noopener noreferrer nofollow">
+            <a className="text-gold hover:text-saffron" href={social.instagram} target="_blank" rel="noopener noreferrer nofollow">
               Instagram
             </a>
           )}
           {social.youtube && (
-            <a className="underline" href={social.youtube} target="_blank" rel="noopener noreferrer nofollow">
+            <a className="text-gold hover:text-saffron" href={social.youtube} target="_blank" rel="noopener noreferrer nofollow">
               YouTube
             </a>
           )}
           {social.website && (
-            <a className="underline" href={social.website} target="_blank" rel="noopener noreferrer nofollow">
+            <a className="text-gold hover:text-saffron" href={social.website} target="_blank" rel="noopener noreferrer nofollow">
               Website
             </a>
           )}
@@ -172,15 +170,15 @@ export default async function OrganizerProfilePage({
       )}
 
       {isOwner && (
-        <div className="mt-6 rounded-lg border border-black/10 p-4 text-sm dark:border-white/15">
-          <p className="font-medium">This is your public page.</p>
-          <p className="mt-1 text-zinc-500">
-            Put <span className="font-mono">aikyam.app/@{profile.handle}</span>{" "}
+        <div className="mt-6 rounded-2xl border border-border bg-surface p-4 text-sm">
+          <p className="font-medium text-cream">This is your public page.</p>
+          <p className="mt-1 text-muted">
+            Put <span className="font-mono text-gold">aikyam.app/@{profile.handle}</span>{" "}
             in your Instagram bio.
           </p>
           <Link
             href="/organizer/events/new"
-            className="mt-3 inline-block rounded-lg bg-foreground px-4 py-2 text-xs font-medium text-background"
+            className="mt-3 inline-block rounded-full bg-gold px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-saffron"
           >
             Create an event
           </Link>
@@ -188,26 +186,26 @@ export default async function OrganizerProfilePage({
       )}
 
       <section className="mt-8">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-zinc-500">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Upcoming events
         </h2>
         {events.length === 0 ? (
-          <p className="mt-2 text-sm text-zinc-500">No upcoming events yet.</p>
+          <p className="mt-2 text-sm text-muted">No upcoming events yet.</p>
         ) : (
           <ul className="mt-3 space-y-2">
             {events.map((ev) => (
               <li key={ev.slug}>
                 <Link
                   href={`/e/${ev.slug}`}
-                  className="flex items-center justify-between gap-3 rounded-lg border border-black/10 p-3 transition-colors hover:bg-black/[.02] dark:border-white/15 dark:hover:bg-white/[.03]"
+                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-gold/30"
                 >
                   <div>
-                    <p className="text-sm font-medium">{ev.title}</p>
-                    <p className="text-xs text-zinc-500">
+                    <p className="text-sm font-medium text-cream">{ev.title}</p>
+                    <p className="text-xs text-muted">
                       {ev.category} · {formatEventShort(ev.starts_at)}
                     </p>
                   </div>
-                  <span className="shrink-0 text-sm font-medium">
+                  <span className="shrink-0 text-sm font-semibold text-gold">
                     {ev.is_free ? "Free" : formatINR(ev.price)}
                   </span>
                 </Link>

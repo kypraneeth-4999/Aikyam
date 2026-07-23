@@ -4,7 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { slugifyHandle } from "@/lib/handles";
 import { ClaimForm } from "./claim-form";
 
-export const metadata = { title: "Become an organizer" };
+export const metadata = { title: "Become an organiser" };
 
 export default async function NewOrganizerPage() {
   const user = await getCurrentUser();
@@ -17,7 +17,6 @@ export default async function NewOrganizerPage() {
     .eq("id", user.id)
     .single();
 
-  // Need a name first (JAD P1 capture) before creating a public page.
   if (!profile?.name) redirect("/onboarding");
 
   const { data: existing } = await supabase
@@ -31,11 +30,11 @@ export default async function NewOrganizerPage() {
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">
-        Create your organizer page
+      <h1 className="font-display text-3xl text-cream">
+        Create your organiser page
       </h1>
-      <p className="mt-1 text-sm text-zinc-500">
-        This is your public storefront — the link you put in your Instagram bio.
+      <p className="mt-1 text-sm text-muted">
+        Your public storefront — the link you put in your Instagram bio.
       </p>
       <ClaimForm suggested={suggested} defaultCity={profile.city ?? ""} />
     </main>

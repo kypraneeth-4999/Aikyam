@@ -16,13 +16,12 @@ export default async function OnboardingPage() {
     .eq("id", user.id)
     .single();
 
-  // Already onboarded — skip straight in (JAD P1: returning user isn't asked again).
   if (profile?.name) redirect("/");
 
   return (
     <main className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-16">
-      <h1 className="text-2xl font-semibold tracking-tight">Welcome to Aikyam</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <h1 className="font-display text-3xl text-cream">Welcome to Aikyam</h1>
+      <p className="mt-1 text-sm text-muted">
         Just your name to finish setting up.
       </p>
       <OnboardingForm defaultCity={profile?.city ?? ""} />

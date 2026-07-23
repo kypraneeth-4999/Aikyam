@@ -39,16 +39,19 @@ export default async function BookPage({
 
   return (
     <main className="mx-auto w-full max-w-md flex-1 px-6 py-10">
-      <Link href={`/e/${ev.slug}`} className="text-sm text-zinc-500 underline">
+      <Link
+        href={`/e/${ev.slug}`}
+        className="text-sm text-muted transition-colors hover:text-cream"
+      >
         ← Back to event
       </Link>
-      <h1 className="mt-3 text-xl font-semibold tracking-tight">{ev.title}</h1>
-      <p className="mt-1 text-sm text-zinc-500">
+      <h1 className="mt-3 font-display text-2xl text-cream">{ev.title}</h1>
+      <p className="mt-1 text-sm text-muted">
         {formatEventWhen(ev.starts_at, ev.ends_at)}
       </p>
 
       {seatsLeft <= 0 ? (
-        <p className="mt-8 rounded-lg border border-black/10 p-4 text-sm dark:border-white/15">
+        <p className="mt-8 rounded-2xl border border-border bg-surface p-4 text-sm text-muted">
           This event is sold out.
         </p>
       ) : (

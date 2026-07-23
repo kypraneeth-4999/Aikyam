@@ -5,8 +5,8 @@ import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/config/categories";
 
 const inputCls =
-  "mt-1 w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-black/30 dark:border-white/15";
-const labelCls = "block text-sm font-medium";
+  "mt-1 w-full rounded-xl border border-border bg-surface2 px-3 py-2.5 text-sm text-cream placeholder:text-muted outline-none focus:border-gold/40 transition-colors";
+const labelCls = "block text-sm font-medium text-cream";
 
 export function EventForm() {
   const router = useRouter();
@@ -83,7 +83,6 @@ export function EventForm() {
       }}
       className="mt-8 space-y-5"
     >
-      {/* Basics */}
       <div>
         <label className={labelCls}>Title</label>
         <input name="title" required minLength={3} placeholder="Beginner's wheel-throwing pottery" className={inputCls} />
@@ -95,7 +94,7 @@ export function EventForm() {
             Choose a category…
           </option>
           {CATEGORIES.map((c) => (
-            <option key={c} value={c}>
+            <option key={c} value={c} className="bg-surface2">
               {c}
             </option>
           ))}
@@ -106,7 +105,6 @@ export function EventForm() {
         <textarea name="description" rows={4} placeholder="What will attendees do and take away?" className={inputCls} />
       </div>
 
-      {/* When */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Starts (IST)</label>
@@ -118,7 +116,6 @@ export function EventForm() {
         </div>
       </div>
 
-      {/* Where */}
       <div>
         <label className={labelCls}>Venue name</label>
         <input name="venue_name" placeholder="The Clay Studio, Kothrud" className={inputCls} />
@@ -134,7 +131,6 @@ export function EventForm() {
         </div>
       </div>
 
-      {/* Capacity & price */}
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Capacity</label>
@@ -153,21 +149,20 @@ export function EventForm() {
           />
         </div>
       </div>
-      <label className="flex items-center gap-2 text-sm">
-        <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} />
+      <label className="flex items-center gap-2 text-sm text-cream">
+        <input type="checkbox" checked={isFree} onChange={(e) => setIsFree(e.target.checked)} className="accent-gold" />
         This is a free event
       </label>
 
-      {/* Materials */}
       <div>
         <label className={labelCls}>Materials</label>
-        <div className="mt-1 flex gap-4 text-sm">
+        <div className="mt-1 flex gap-4 text-sm text-cream">
           <label className="flex items-center gap-2">
-            <input type="radio" name="materials-ui" checked={materials === "included"} onChange={() => setMaterials("included")} />
+            <input type="radio" name="materials-ui" checked={materials === "included"} onChange={() => setMaterials("included")} className="accent-gold" />
             Included
           </label>
           <label className="flex items-center gap-2">
-            <input type="radio" name="materials-ui" checked={materials === "byo"} onChange={() => setMaterials("byo")} />
+            <input type="radio" name="materials-ui" checked={materials === "byo"} onChange={() => setMaterials("byo")} className="accent-gold" />
             Bring your own
           </label>
         </div>
@@ -183,7 +178,6 @@ export function EventForm() {
         )}
       </div>
 
-      {/* Details */}
       <div>
         <label className={labelCls}>What to bring (optional)</label>
         <input name="what_to_bring" placeholder="An apron and a water bottle" className={inputCls} />
@@ -208,33 +202,33 @@ export function EventForm() {
       </div>
 
       {errors.length > 0 && (
-        <ul className="list-inside list-disc rounded-lg bg-red-50 p-3 text-sm text-red-700 dark:bg-red-950/40 dark:text-red-300">
+        <ul className="list-inside list-disc rounded-xl border border-crimson/30 bg-crimson/10 p-3 text-sm text-crimson">
           {errors.map((e) => (
             <li key={e}>{e}</li>
           ))}
         </ul>
       )}
-      {draftMsg && <p className="text-sm text-green-600">{draftMsg}</p>}
+      {draftMsg && <p className="text-sm text-emerald-400">{draftMsg}</p>}
 
       <div className="flex gap-3 pt-2">
         <button
           type="button"
           onClick={() => submit(false)}
           disabled={busy !== null}
-          className="flex-1 rounded-lg border border-black/10 px-3 py-2 text-sm font-medium disabled:opacity-50 dark:border-white/15"
+          className="flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-cream transition-colors hover:border-gold/30 disabled:opacity-50"
         >
           {busy === "draft" ? "Saving…" : "Save draft"}
         </button>
         <button
           type="submit"
           disabled={busy !== null}
-          className="flex-1 rounded-lg bg-foreground px-3 py-2 text-sm font-medium text-background disabled:opacity-50"
+          className="flex-1 rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
         >
           {busy === "publish" ? "Publishing…" : "Publish"}
         </button>
       </div>
-      <p className="text-xs text-zinc-500">
-        Note: media upload and Instagram import arrive later in this slice. Times are in IST.
+      <p className="text-xs text-muted">
+        Media upload and Instagram import arrive later. Times are in IST.
       </p>
     </form>
   );

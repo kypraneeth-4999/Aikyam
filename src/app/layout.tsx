@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { Abril_Fatface, Poppins } from "next/font/google";
 import "./globals.css";
+import { SiteHeader } from "@/components/site-header";
+import { SiteFooter } from "@/components/site-footer";
 
 const abril = Abril_Fatface({
   weight: "400",
@@ -46,7 +48,9 @@ export default function RootLayout({
       className={`${abril.variable} ${poppins.variable} h-full antialiased`}
     >
       <body className="flex min-h-full flex-col bg-ink text-cream">
-        {children}
+        <SiteHeader />
+        <div className="flex flex-1 flex-col">{children}</div>
+        <SiteFooter />
       </body>
     </html>
   );

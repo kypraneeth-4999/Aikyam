@@ -3,8 +3,6 @@ import { fetchDiscoverEvents, type DiscoverEvent } from "@/lib/discovery";
 import { CATEGORIES } from "@/config/categories";
 import { formatEventShort, formatEventWhen } from "@/lib/datetime";
 import { formatINR } from "@/lib/money";
-import { SiteHeader } from "@/components/site-header";
-import { SiteFooter } from "@/components/site-footer";
 
 function EventCard({ ev }: { ev: DiscoverEvent }) {
   const img = ev.cover_media ?? ev.photos?.[0] ?? null;
@@ -80,8 +78,6 @@ export default async function Home({
 
   return (
     <>
-      <SiteHeader />
-
       {/* HERO */}
       {featured ? (
         <section className="relative h-[70vh] overflow-hidden">
@@ -219,8 +215,6 @@ export default async function Home({
           </div>
         </section>
       </main>
-
-      <SiteFooter />
     </>
   );
 }

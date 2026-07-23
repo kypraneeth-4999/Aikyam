@@ -47,8 +47,6 @@ const fetchEvent = cache(async (slug: string) => {
   if (!data) return null;
   const ev = data as EventRow;
 
-  // Host (primary organizer). event_organizers + organizer_profiles are public;
-  // the display name lives behind RLS, so read it with the service-role client.
   const admin = createAdminClient();
   let host: Host | null = null;
   const { data: eo } = await admin
@@ -77,16 +75,12 @@ const fetchEvent = cache(async (slug: string) => {
     }
   }
 
-  // seats_left = capacity − paid seats (server truth; bookings are RLS-guarded).
   const { data: paid } = await admin
     .from("bookings")
     .select("seats")
     .eq("event_id", ev.id)
     .eq("payment_status", "paid");
-  const taken = (paid ?? []).reduce(
-    (sum, b) => sum + (Number(b.seats) || 0),
-    0,
-  );
+  const taken = (paid ?? []).reduce((s, b) => s + (Number(b.seats) || 0), 0);
   const seatsLeft = ev.capacity != null ? Math.max(0, ev.capacity - taken) : null;
 
   return { ev, host, seatsLeft };
@@ -107,7 +101,7 @@ export async function generateMetadata({
     `${priceLabel} · ${formatEventWhen(ev.starts_at, ev.ends_at)}`;
   const images = ev.cover_media
     ? [ev.cover_media]
-    : ev.photos && ev.photos.length
+    : ev.photos?.length
       ? [ev.photos[0]]
       : undefined;
   return {
@@ -129,6 +123,9 @@ export async function generateMetadata({
   };
 }
 
+const infoPill =
+  "flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2 text-sm text-muted";
+
 export default async function EventPage({
   params,
 }: {
@@ -144,143 +141,176 @@ export default async function EventPage({
     ev.status === "completed" ||
     (ev.starts_at ? new Date(ev.starts_at).getTime() < Date.now() : false);
   const soldOut = seatsLeft !== null && seatsLeft <= 0;
+  const bookable = !isCancelled && !isPast && !soldOut;
   const priceLabel = ev.is_free ? "Free" : formatINR(ev.price);
+  const heroImg = ev.cover_media ?? ev.photos?.[0] ?? null;
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10">
-      {/* Cover placeholder (media upload arrives later in this slice) */}
-      <div className="flex aspect-[16/9] w-full items-center justify-center rounded-xl bg-zinc-100 text-sm text-zinc-400 dark:bg-zinc-900">
-        {ev.category}
-      </div>
-
-      <div className="mt-5 flex items-center gap-2 text-xs">
-        <span className="rounded-full bg-zinc-100 px-2 py-1 font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-          {ev.category}
-        </span>
-        {isCancelled && (
-          <span className="rounded-full bg-red-100 px-2 py-1 font-medium text-red-700 dark:bg-red-950/50 dark:text-red-300">
-            Cancelled
-          </span>
-        )}
-        {!isCancelled && isPast && (
-          <span className="rounded-full bg-zinc-200 px-2 py-1 font-medium text-zinc-600 dark:bg-zinc-700 dark:text-zinc-300">
-            Ended
-          </span>
-        )}
-      </div>
-
-      <h1 className="mt-3 text-2xl font-semibold tracking-tight">{ev.title}</h1>
-
-      <div className="mt-3 space-y-1 text-sm text-zinc-600 dark:text-zinc-400">
-        <p>{formatEventWhen(ev.starts_at, ev.ends_at)}</p>
-        {ev.venue_name && (
-          <p>
-            {ev.maps_url ? (
-              <a href={ev.maps_url} target="_blank" rel="noopener noreferrer nofollow" className="underline">
-                {ev.venue_name}
-              </a>
-            ) : (
-              ev.venue_name
-            )}
-            {ev.landmark ? ` · ${ev.landmark}` : ""}
-          </p>
-        )}
-      </div>
-
-      {host && (
-        <Link
-          href={`/@${host.handle}`}
-          className="mt-4 flex items-center gap-3 rounded-lg border border-black/10 p-3 dark:border-white/15"
-        >
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-200 text-sm font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">
-            {host.name.slice(0, 1).toUpperCase()}
-          </div>
-          <div className="text-sm">
-            <p className="font-medium">
-              {host.name}
-              {host.verified ? " ✓" : ""}
-            </p>
-            <p className="text-zinc-500">@{host.handle}</p>
-          </div>
-        </Link>
-      )}
-
-      {ev.description && (
-        <p className="mt-5 whitespace-pre-line text-sm leading-6 text-zinc-700 dark:text-zinc-300">
-          {ev.description}
-        </p>
-      )}
-
-      <dl className="mt-5 space-y-2 text-sm">
-        {ev.what_to_bring && (
-          <div>
-            <dt className="font-medium">What to bring</dt>
-            <dd className="text-zinc-600 dark:text-zinc-400">{ev.what_to_bring}</dd>
-          </div>
-        )}
-        <div>
-          <dt className="font-medium">Materials</dt>
-          <dd className="text-zinc-600 dark:text-zinc-400">
-            {ev.materials === "included"
-              ? "Included"
-              : `Bring your own${
-                  ev.materials_addon_price
-                    ? ` (add-on ${formatINR(ev.materials_addon_price)})`
-                    : ""
-                }`}
-          </dd>
-        </div>
-        {ev.languages && ev.languages.length > 0 && (
-          <div>
-            <dt className="font-medium">Languages</dt>
-            <dd className="text-zinc-600 dark:text-zinc-400">{ev.languages.join(", ")}</dd>
-          </div>
-        )}
-        {ev.age_suitability && (
-          <div>
-            <dt className="font-medium">Age</dt>
-            <dd className="text-zinc-600 dark:text-zinc-400">{ev.age_suitability}</dd>
-          </div>
-        )}
-        {ev.cancellation_policy && (
-          <div>
-            <dt className="font-medium">Cancellation</dt>
-            <dd className="text-zinc-600 dark:text-zinc-400">{ev.cancellation_policy}</dd>
-          </div>
-        )}
-      </dl>
-
-      {/* Reserve bar */}
-      <div className="mt-8 flex items-center justify-between rounded-xl border border-black/10 p-4 dark:border-white/15">
-        <div>
-          <p className="text-lg font-semibold">{priceLabel}</p>
-          {seatsLeft !== null && !isCancelled && !isPast && (
-            <p className="text-xs text-zinc-500">
-              {soldOut
-                ? "Sold out"
-                : seatsLeft <= 5
-                  ? `Only ${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} left`
-                  : `${seatsLeft} seats left`}
-            </p>
-          )}
-        </div>
-        {!isCancelled && !isPast && !soldOut ? (
-          <Link
-            href={`/e/${ev.slug}/book`}
-            className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background"
-          >
-            Reserve
-          </Link>
+    <>
+      {/* HERO */}
+      <section className="relative h-[50vh] overflow-hidden bg-surface2">
+        {heroImg ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={heroImg} alt={ev.title} className="h-full w-full object-cover opacity-60" />
         ) : (
-          <button
-            type="button"
-            disabled
-            className="rounded-lg bg-foreground px-5 py-2.5 text-sm font-medium text-background disabled:opacity-50"
-          >
-            {isCancelled ? "Cancelled" : isPast ? "Ended" : "Sold out"}
-          </button>
+          <div className="flex h-full w-full items-center justify-center font-display text-6xl text-muted/25">
+            {ev.category}
+          </div>
         )}
+        <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-ink/60 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0">
+          <div className="mx-auto max-w-7xl px-6 pb-8">
+            <div className="mb-3 flex items-center gap-2 text-sm">
+              <Link href="/" className="text-muted transition-colors hover:text-cream">
+                Events
+              </Link>
+              <span className="text-border">›</span>
+              <span className="text-muted">{ev.category}</span>
+            </div>
+            <span className="mb-3 inline-block rounded-full border border-gold/25 bg-gold/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-gold">
+              {ev.category}
+              {isCancelled ? " · Cancelled" : isPast ? " · Ended" : ""}
+            </span>
+            <h1 className="max-w-3xl font-display text-4xl leading-none text-cream md:text-6xl">
+              {ev.title}
+            </h1>
+          </div>
+        </div>
+      </section>
+
+      {/* BODY */}
+      <div className="mx-auto max-w-7xl px-6 py-12">
+        <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
+          {/* LEFT */}
+          <div className="space-y-10 lg:col-span-2">
+            <div className="flex flex-wrap gap-3">
+              <div className={infoPill}>
+                <span className="text-xs text-gold">◷</span>
+                {formatEventWhen(ev.starts_at, ev.ends_at)}
+              </div>
+              {ev.venue_name && (
+                <div className={infoPill}>
+                  <span className="text-xs text-gold">◎</span>
+                  {ev.maps_url ? (
+                    <a href={ev.maps_url} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-cream">
+                      {ev.venue_name}
+                    </a>
+                  ) : (
+                    ev.venue_name
+                  )}
+                  {ev.landmark ? ` · ${ev.landmark}` : ""}
+                </div>
+              )}
+              {ev.languages && ev.languages.length > 0 && (
+                <div className={infoPill}>
+                  <span className="text-xs text-gold">◆</span>
+                  {ev.languages.join(", ")}
+                </div>
+              )}
+              {ev.age_suitability && (
+                <div className={infoPill}>
+                  <span className="text-xs text-gold">✦</span>
+                  {ev.age_suitability}
+                </div>
+              )}
+            </div>
+
+            {ev.description && (
+              <div>
+                <h2 className="mb-5 font-display text-2xl text-cream">About this event</h2>
+                <div className="space-y-4">
+                  {ev.description.split("\n\n").map((para, i) => (
+                    <p key={i} className="text-sm leading-relaxed text-muted">
+                      {para}
+                    </p>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div>
+              <h2 className="mb-5 font-display text-2xl text-cream">Details</h2>
+              <dl className="space-y-3 text-sm">
+                {ev.what_to_bring && (
+                  <div>
+                    <dt className="text-cream">What to bring</dt>
+                    <dd className="text-muted">{ev.what_to_bring}</dd>
+                  </div>
+                )}
+                <div>
+                  <dt className="text-cream">Materials</dt>
+                  <dd className="text-muted">
+                    {ev.materials === "included"
+                      ? "Included"
+                      : `Bring your own${
+                          ev.materials_addon_price
+                            ? ` (add-on ${formatINR(ev.materials_addon_price)})`
+                            : ""
+                        }`}
+                  </dd>
+                </div>
+                {ev.cancellation_policy && (
+                  <div>
+                    <dt className="text-cream">Cancellation</dt>
+                    <dd className="text-muted">{ev.cancellation_policy}</dd>
+                  </div>
+                )}
+              </dl>
+            </div>
+
+            {host && (
+              <Link
+                href={`/@${host.handle}`}
+                className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-gold/30"
+              >
+                <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/20 bg-gold/10 text-sm font-bold text-gold">
+                  {host.name.slice(0, 1).toUpperCase()}
+                </div>
+                <div className="text-sm">
+                  <p className="text-xs text-muted">Organised by</p>
+                  <p className="font-medium text-cream">
+                    {host.name}
+                    {host.verified ? " ✓" : ""}
+                  </p>
+                </div>
+              </Link>
+            )}
+          </div>
+
+          {/* RIGHT — reserve box */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 rounded-2xl border border-border bg-surface p-6">
+              <p className="mb-1 text-xs uppercase tracking-widest text-muted">
+                {ev.is_free ? "Free event" : "Tickets from"}
+              </p>
+              <p className="mb-4 font-display text-3xl text-gold">{priceLabel}</p>
+              {seatsLeft !== null && bookable && (
+                <p className="mb-4 text-xs text-muted">
+                  {seatsLeft <= 5
+                    ? `Only ${seatsLeft} seat${seatsLeft === 1 ? "" : "s"} left`
+                    : `${seatsLeft} seats available`}
+                </p>
+              )}
+              {bookable ? (
+                <Link
+                  href={`/e/${ev.slug}/book`}
+                  className="block w-full rounded-xl bg-gold py-3.5 text-center text-sm font-semibold text-ink transition-all hover:bg-saffron hover:scale-[1.02] active:scale-[0.98]"
+                >
+                  {ev.is_free ? "Register free" : "Book tickets"}
+                </Link>
+              ) : (
+                <div className="w-full rounded-xl border border-border bg-surface2 py-3.5 text-center text-sm font-semibold text-muted">
+                  {isCancelled ? "Event cancelled" : isPast ? "Event ended" : "Sold out"}
+                </div>
+              )}
+              <p className="mt-3 text-center text-xs text-muted">
+                Payment confirmed securely before your ticket is issued.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
-    </main>
+    </>
   );
 }

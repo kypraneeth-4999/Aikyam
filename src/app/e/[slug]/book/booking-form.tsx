@@ -31,6 +31,9 @@ function loadRazorpay(): Promise<boolean> {
   });
 }
 
+const input =
+  "w-full rounded-xl border border-border bg-surface2 px-3 py-2.5 text-sm text-cream placeholder:text-muted outline-none focus:border-gold/40 transition-colors";
+
 export function BookingForm({
   slug,
   eventTitle,
@@ -107,15 +110,11 @@ export function BookingForm({
         setStatus("error");
         return;
       }
-
-      // Free event — ticket already issued.
       if (data.status === "paid" && data.ticketId) {
         setStatus("redirecting");
         router.push(`/tickets/${data.ticketId}`);
         return;
       }
-
-      // Paid event — open Razorpay Checkout.
       const ok = await loadRazorpay();
       if (!ok) {
         setError("Couldn't load the payment window. Please retry.");
@@ -130,8 +129,8 @@ export function BookingForm({
         order_id: data.razorpayOrderId,
         name: "Aikyam",
         description: eventTitle,
+        theme: { color: "#F4A01C" },
         prefill: { name: names[0] || defaultName },
-        // The handler is NOT trusted — we confirm via the webhook by polling.
         handler: () => pollUntilPaid(data.bookingId),
         modal: { ondismiss: () => setStatus("cancelled") },
       });
@@ -145,31 +144,31 @@ export function BookingForm({
   return (
     <div className="mt-6 space-y-5">
       <div>
-        <label className="block text-sm font-medium">Seats</label>
+        <label className="block text-sm font-medium text-cream">Seats</label>
         <div className="mt-1 flex items-center gap-3">
           <button
             type="button"
             onClick={() => setSeatCount(seats - 1)}
             disabled={busy || seats <= 1}
-            className="h-9 w-9 rounded-lg border border-black/10 text-lg disabled:opacity-40 dark:border-white/15"
+            className="h-9 w-9 rounded-lg border border-border bg-surface2 text-lg text-cream disabled:opacity-40"
           >
             −
           </button>
-          <span className="w-8 text-center text-sm font-medium">{seats}</span>
+          <span className="w-8 text-center text-sm font-semibold">{seats}</span>
           <button
             type="button"
             onClick={() => setSeatCount(seats + 1)}
             disabled={busy || seats >= maxSeats}
-            className="h-9 w-9 rounded-lg border border-black/10 text-lg disabled:opacity-40 dark:border-white/15"
+            className="h-9 w-9 rounded-lg border border-border bg-surface2 text-lg text-cream disabled:opacity-40"
           >
             +
           </button>
-          <span className="text-xs text-zinc-500">{maxSeats} available</span>
+          <span className="text-xs text-muted">{maxSeats} available</span>
         </div>
       </div>
 
       <div className="space-y-2">
-        <label className="block text-sm font-medium">Guest names</label>
+        <label className="block text-sm font-medium text-cream">Guest names</label>
         {names.map((n, i) => (
           <input
             key={i}
@@ -178,42 +177,43 @@ export function BookingForm({
               setNames((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
             }
             placeholder={`Guest ${i + 1}`}
-            className="w-full rounded-lg border border-black/10 px-3 py-2 text-sm outline-none focus:border-black/30 dark:border-white/15"
+            className={input}
           />
         ))}
       </div>
 
       {offersAddon && (
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-sm text-cream">
           <input
             type="checkbox"
             checked={withAddon}
             onChange={(e) => setWithAddon(e.target.checked)}
+            className="accent-gold"
           />
           Add materials ({formatINR(addonPrice!)} per seat)
         </label>
       )}
 
-      <div className="flex items-center justify-between rounded-xl border border-black/10 p-4 dark:border-white/15">
-        <span className="text-sm text-zinc-500">Total</span>
-        <span className="text-lg font-semibold">
+      <div className="flex items-center justify-between rounded-2xl border border-border bg-surface p-4">
+        <span className="text-sm text-muted">Total</span>
+        <span className="font-display text-2xl text-gold">
           {isFree ? "Free" : formatINR(total)}
         </span>
       </div>
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-crimson">{error}</p>}
       {status === "cancelled" && (
-        <p className="text-sm text-amber-600">Payment cancelled. You can try again.</p>
+        <p className="text-sm text-saffron">Payment cancelled. You can try again.</p>
       )}
       {status === "processing" && (
-        <p className="text-sm text-zinc-500">Processing… please don&apos;t close this page.</p>
+        <p className="text-sm text-muted">Processing… please don&apos;t close this page.</p>
       )}
 
       <button
         type="button"
         onClick={pay}
         disabled={busy}
-        className="w-full rounded-lg bg-foreground px-4 py-2.5 text-sm font-medium text-background disabled:opacity-50"
+        className="w-full rounded-xl bg-gold py-3.5 text-sm font-semibold text-ink transition-all hover:bg-saffron hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
       >
         {isFree
           ? busy
@@ -223,7 +223,7 @@ export function BookingForm({
             ? "Processing…"
             : `Pay ${formatINR(total)}`}
       </button>
-      <p className="text-center text-xs text-zinc-500">
+      <p className="text-center text-xs text-muted">
         Payment is confirmed securely on our server before your ticket is issued.
       </p>
     </div>
