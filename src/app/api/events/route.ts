@@ -104,6 +104,8 @@ export async function POST(request: Request) {
     title,
     category,
     description: str(body.description),
+    cover_media: str(body.cover_media),
+    photos: toArray(body.photos),
     starts_at: startsAt!.toISOString(),
     ends_at: endsAt ? endsAt.toISOString() : null,
     venue_name: venueName,

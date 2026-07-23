@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/config/categories";
+import { createClient } from "@/lib/supabase/client";
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-border bg-surface2 px-3 py-2.5 text-sm text-cream placeholder:text-muted outline-none focus:border-gold/40 transition-colors";
@@ -13,9 +14,42 @@ export function EventForm() {
   const formRef = useRef<HTMLFormElement>(null);
   const [isFree, setIsFree] = useState(false);
   const [materials, setMaterials] = useState<"included" | "byo">("included");
+  const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | "draft" | "publish">(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [draftMsg, setDraftMsg] = useState<string | null>(null);
+
+  async function uploadCover(file: File) {
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const res = await fetch("/api/uploads/sign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ contentType: file.type }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setUploadError(data.error ?? "Upload failed.");
+        return;
+      }
+      const supabase = createClient();
+      const { error } = await supabase.storage
+        .from(data.bucket)
+        .uploadToSignedUrl(data.path, data.token, file);
+      if (error) {
+        setUploadError(error.message);
+        return;
+      }
+      setCoverUrl(data.publicUrl);
+    } catch {
+      setUploadError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
 
   async function submit(publish: boolean) {
     const form = formRef.current;
@@ -32,6 +66,7 @@ export function EventForm() {
       title: fd.get("title"),
       category: fd.get("category"),
       description: fd.get("description"),
+      cover_media: coverUrl,
       starts_at: fd.get("starts_at"),
       ends_at: fd.get("ends_at"),
       venue_name: fd.get("venue_name"),
@@ -100,6 +135,29 @@ export function EventForm() {
           ))}
         </select>
       </div>
+
+      {/* Cover image */}
+      <div>
+        <label className={labelCls}>Cover image (optional)</label>
+        {coverUrl && (
+          <div className="mt-1 overflow-hidden rounded-xl border border-border">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={coverUrl} alt="Cover preview" className="aspect-[16/9] w-full object-cover" />
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => {
+            const f = e.target.files?.[0];
+            if (f) uploadCover(f);
+          }}
+          className="mt-2 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface2 file:px-3 file:py-2 file:text-sm file:text-cream hover:file:bg-surface"
+        />
+        {uploading && <p className="mt-1 text-xs text-muted">Uploading…</p>}
+        {uploadError && <p className="mt-1 text-xs text-crimson">{uploadError}</p>}
+      </div>
+
       <div>
         <label className={labelCls}>Description</label>
         <textarea name="description" rows={4} placeholder="What will attendees do and take away?" className={inputCls} />
@@ -214,21 +272,21 @@ export function EventForm() {
         <button
           type="button"
           onClick={() => submit(false)}
-          disabled={busy !== null}
+          disabled={busy !== null || uploading}
           className="flex-1 rounded-xl border border-border bg-surface px-3 py-2.5 text-sm font-medium text-cream transition-colors hover:border-gold/30 disabled:opacity-50"
         >
           {busy === "draft" ? "Saving…" : "Save draft"}
         </button>
         <button
           type="submit"
-          disabled={busy !== null}
+          disabled={busy !== null || uploading}
           className="flex-1 rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
         >
           {busy === "publish" ? "Publishing…" : "Publish"}
         </button>
       </div>
       <p className="text-xs text-muted">
-        Media upload and Instagram import arrive later. Times are in IST.
+        Instagram import arrives later. Times are in IST.
       </p>
     </form>
   );
