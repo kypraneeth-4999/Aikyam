@@ -25,11 +25,15 @@ function EventCard({ ev }: { ev: DiscoverEvent }) {
           </div>
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-ink/60 to-transparent" />
-        {ev.is_free && (
+        {ev.is_featured ? (
+          <span className="absolute left-3 top-3 rounded-full bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ink">
+            ✦ Featured
+          </span>
+        ) : ev.is_free ? (
           <span className="absolute left-3 top-3 rounded-full bg-emerald-600/75 px-2.5 py-1 text-xs font-semibold text-white">
             Free
           </span>
-        )}
+        ) : null}
         <span className="absolute right-3 top-3 rounded-full border border-border bg-ink/60 px-2.5 py-1 text-xs text-cream/80 backdrop-blur-sm">
           {ev.category}
         </span>
@@ -67,7 +71,8 @@ export default async function Home({
       : undefined;
 
   const events = await fetchDiscoverEvents(activeCategory);
-  const featured = events[0];
+  // Admin-curated featured event drives the hero; fall back to the soonest.
+  const featured = events.find((e) => e.is_featured) ?? events[0];
   const heroImg = featured?.cover_media ?? featured?.photos?.[0] ?? null;
 
   const pillBase =

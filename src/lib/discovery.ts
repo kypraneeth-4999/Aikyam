@@ -10,6 +10,7 @@ export type DiscoverEvent = {
   starts_at: string | null;
   price: number;
   is_free: boolean;
+  is_featured: boolean;
   cover_media: string | null;
   photos: string[] | null;
   host: { handle: string; name: string } | null;
@@ -29,7 +30,7 @@ export async function fetchDiscoverEvents(
   let q = supabase
     .from("events")
     .select(
-      "id, slug, title, category, starts_at, price, is_free, cover_media, photos",
+      "id, slug, title, category, starts_at, price, is_free, is_featured, cover_media, photos",
     )
     .eq("status", "published")
     .gte("starts_at", new Date().toISOString())
