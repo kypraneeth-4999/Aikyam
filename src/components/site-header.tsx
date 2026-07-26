@@ -65,6 +65,11 @@ export async function SiteHeader() {
               My page
             </Link>
           )}
+          {user && (
+            <Link href="/settings" className={`hidden sm:block ${quiet}`}>
+              Settings
+            </Link>
+          )}
           {!user && (
             <Link href="/login" className={quiet}>
               Sign in

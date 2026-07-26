@@ -1,17 +1,40 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
-// Next.js 16 "proxy" convention (formerly middleware). Refreshes the Supabase
-// auth session on each navigation.
+const SAFE_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
+
+// Next.js 16 "proxy" convention (formerly middleware).
 export async function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+
+  // CSRF defence: mutating API requests must originate from our own site.
+  // Webhooks are exempt — they carry no Origin and are verified by signature.
+  if (
+    !SAFE_METHODS.has(request.method) &&
+    pathname.startsWith("/api/") &&
+    !pathname.startsWith("/api/webhooks/")
+  ) {
+    const origin = request.headers.get("origin");
+    const host = request.headers.get("host");
+    let ok = false;
+    try {
+      ok = !!origin && !!host && new URL(origin).host === host;
+    } catch {
+      ok = false;
+    }
+    if (!ok) {
+      return NextResponse.json({ error: "Bad origin." }, { status: 403 });
+    }
+  }
+
+  // Refresh the Supabase auth session.
   return await updateSession(request);
 }
 
 export const config = {
   matcher: [
     /*
-     * Match all request paths except static assets and image files, so the
-     * Supabase session is refreshed on real navigations only.
+     * Match all request paths except static assets and image files.
      */
     "/((?!_next/static|_next/image|favicon.ico|manifest.webmanifest|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

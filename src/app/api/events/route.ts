@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { isCategory } from "@/config/categories";
 import { slugifyTitle } from "@/lib/slug";
 import { rupeesToPaise } from "@/lib/money";
+import { moderateText } from "@/lib/moderation";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -97,6 +98,13 @@ export async function POST(request: Request) {
 
   const venueName = str(body.venue_name);
   if (publish && !venueName) errors.push("Venue name is required to publish.");
+
+  if (publish) {
+    const mod = moderateText(
+      `${title} ${typeof body.description === "string" ? body.description : ""}`,
+    );
+    if (!mod.ok && mod.reason) errors.push(mod.reason);
+  }
 
   if (errors.length) return NextResponse.json({ errors }, { status: 400 });
 
