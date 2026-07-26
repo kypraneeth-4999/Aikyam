@@ -119,6 +119,59 @@ export async function sendCancellationEmail(admin: Admin, bookingId: string): Pr
   }
 }
 
+/**
+ * Best-effort event reminder email (24h / 3h before start). Never throws.
+ * Returns true only if an email was actually sent.
+ */
+export async function sendReminderEmail(
+  admin: Admin,
+  bookingId: string,
+  kind: "reminder_24h" | "reminder_3h",
+): Promise<boolean> {
+  try {
+    const { data: booking } = await admin
+      .from("bookings")
+      .select("attendee_user_id, event_id, seats")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!booking) return false;
+
+    const [{ data: ticket }, { data: user }, { data: ev }] = await Promise.all([
+      admin.from("tickets").select("id").eq("booking_id", bookingId).maybeSingle(),
+      admin.from("users").select("email, name").eq("id", booking.attendee_user_id).maybeSingle(),
+      admin
+        .from("events")
+        .select("title, starts_at, ends_at, venue_name, maps_url, landmark, what_to_bring")
+        .eq("id", booking.event_id)
+        .maybeSingle(),
+    ]);
+    if (!ticket || !user?.email || !ev) return false;
+
+    const soon = kind === "reminder_3h" ? "in about 3 hours" : "tomorrow";
+    const heading = kind === "reminder_3h" ? "Starting soon ⏰" : "See you tomorrow 👋";
+    const ticketUrl = `${SITE_URL}/tickets/${ticket.id}`;
+
+    return await sendEmail({
+      to: user.email,
+      subject: `Reminder: ${ev.title} is ${soon}`,
+      html: shell(`
+        <h1 style="font-size:20px;margin:0 0 4px;">${heading}</h1>
+        <p style="color:#666;margin:0 0 16px;">Hi ${esc(user.name ?? "there")}, <strong>${esc(ev.title)}</strong> starts ${soon}.</p>
+        <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:20px;">
+          <p style="margin:0 0 4px;color:#555;">${esc(formatEventWhen(ev.starts_at, ev.ends_at))}</p>
+          ${ev.venue_name ? `<p style="margin:0 0 4px;color:#555;">${esc(ev.venue_name)}${ev.landmark ? ` · ${esc(ev.landmark)}` : ""}</p>` : ""}
+          <p style="margin:0;color:#555;">${booking.seats} seat${booking.seats === 1 ? "" : "s"}</p>
+          ${ev.what_to_bring ? `<p style="margin:8px 0 0;color:#555;"><strong>Bring:</strong> ${esc(ev.what_to_bring)}</p>` : ""}
+        </div>
+        <a href="${ticketUrl}" style="display:inline-block;background:#F4A01C;color:#0B0914;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:999px;">Open your ticket</a>
+        ${ev.maps_url ? `<p style="margin:16px 0 0;"><a href="${ev.maps_url}" style="color:#666;font-size:13px;">Get directions</a></p>` : ""}`),
+    });
+  } catch (e) {
+    console.error("[notifications] sendReminderEmail error:", e);
+    return false;
+  }
+}
+
 /** Best-effort co-organiser invite email. Never throws. */
 export async function sendCoorganizerInvite(
   admin: Admin,

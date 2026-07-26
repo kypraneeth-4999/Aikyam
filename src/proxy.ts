@@ -8,11 +8,13 @@ export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // CSRF defence: mutating API requests must originate from our own site.
-  // Webhooks are exempt — they carry no Origin and are verified by signature.
+  // Exempt: webhooks (no Origin; verified by signature) and cron jobs
+  // (no Origin; verified by CRON_SECRET).
   if (
     !SAFE_METHODS.has(request.method) &&
     pathname.startsWith("/api/") &&
-    !pathname.startsWith("/api/webhooks/")
+    !pathname.startsWith("/api/webhooks/") &&
+    !pathname.startsWith("/api/cron/")
   ) {
     const origin = request.headers.get("origin");
     const host = request.headers.get("host");
