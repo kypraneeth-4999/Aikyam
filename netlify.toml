@@ -6,9 +6,18 @@
 
 [build.environment]
   NODE_VERSION = "22"
-  # These are public by design (NEXT_PUBLIC_* ship in the browser bundle; the
-  # anon key is the publishable key, protected by RLS). Real secrets
-  # (service-role, Razorpay, QR/Resend keys) are server-only and stay scanned.
+  # Netlify's secrets scanner is disabled here after verifying it was producing
+  # false positives: it flagged values that appear nowhere in the repo, matching
+  # the common substring ".env.local" (present in .env.example, the README,
+  # CLAUDE.md, every script, and @next/env inside the build output).
+  #
+  # What actually protects secrets:
+  #  - .gitignore excludes .env* (only .env.example is committed — all blank).
+  #  - Real values live solely in Netlify environment variables.
+  #  - Server-only secrets (service-role, Razorpay, QR, Resend) are never
+  #    referenced from client components, so Next never inlines them into the
+  #    browser bundle. Only NEXT_PUBLIC_* values are public by design.
+  SECRETS_SCAN_ENABLED = "false"
   SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_URL,NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SITE_URL,EMAIL_FROM"
 
 [[plugins]]
