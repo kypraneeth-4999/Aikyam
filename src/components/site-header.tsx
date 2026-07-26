@@ -50,6 +50,11 @@ export async function SiteHeader() {
           </div>
         </div>
         <div className="flex items-center gap-4">
+          {user && (
+            <Link href="/tickets" className={`hidden sm:block ${quiet}`}>
+              My tickets
+            </Link>
+          )}
           {user && handle && (
             <Link href="/dashboard" className={`hidden sm:block ${quiet}`}>
               Dashboard

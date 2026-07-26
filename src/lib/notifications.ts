@@ -12,6 +12,10 @@ function esc(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
+function shell(inner: string): string {
+  return `<div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#14102a;">${inner}<p style="color:#999;font-size:12px;margin-top:24px;">— Aikyam</p></div>`;
+}
+
 function ticketEmailHtml(o: {
   name: string | null;
   title: string;
@@ -20,8 +24,7 @@ function ticketEmailHtml(o: {
   seats: number;
   ticketUrl: string;
 }): string {
-  return `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,sans-serif;max-width:480px;margin:0 auto;padding:24px;color:#14102a;">
+  return shell(`
     <h1 style="font-size:20px;margin:0 0 4px;">You're booked! 🎉</h1>
     <p style="color:#666;margin:0 0 20px;">Hi ${esc(o.name ?? "there")}, your ticket for <strong>${esc(o.title)}</strong> is ready.</p>
     <div style="border:1px solid #eee;border-radius:12px;padding:16px;margin-bottom:20px;">
@@ -31,14 +34,22 @@ function ticketEmailHtml(o: {
       <p style="margin:0;color:#555;">${o.seats} seat${o.seats === 1 ? "" : "s"}</p>
     </div>
     <a href="${o.ticketUrl}" style="display:inline-block;background:#F4A01C;color:#0B0914;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:999px;">View your ticket &amp; QR</a>
-    <p style="color:#999;font-size:12px;margin-top:24px;">Show the QR code at the door. — Aikyam</p>
-  </div>`;
+    <p style="color:#999;font-size:12px;margin-top:16px;">Show the QR code at the door.</p>`);
 }
 
-/**
- * Best-effort booking-confirmation email with the ticket link. Never throws —
- * a failed email must not fail the booking.
- */
+function cancellationHtml(o: {
+  name: string | null;
+  title: string;
+  refundNote: string;
+}): string {
+  return shell(`
+    <h1 style="font-size:20px;margin:0 0 4px;">Booking cancelled</h1>
+    <p style="color:#666;margin:0 0 12px;">Hi ${esc(o.name ?? "there")}, your booking for <strong>${esc(o.title)}</strong> has been cancelled.</p>
+    ${o.refundNote ? `<p style="color:#555;margin:0 0 12px;">${esc(o.refundNote)}</p>` : ""}
+    <p style="color:#555;margin:0;">We're sorry for the inconvenience.</p>`);
+}
+
+/** Best-effort booking-confirmation email with the ticket link. Never throws. */
 export async function sendTicketEmail(admin: Admin, bookingId: string): Promise<void> {
   try {
     const { data: booking } = await admin
@@ -60,20 +71,49 @@ export async function sendTicketEmail(admin: Admin, bookingId: string): Promise<
     if (!ticket || !user?.email || !ev) return;
 
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
-    const html = ticketEmailHtml({
-      name: user.name,
-      title: ev.title,
-      when: formatEventWhen(ev.starts_at, ev.ends_at),
-      venue: ev.venue_name,
-      seats: booking.seats,
-      ticketUrl: `${siteUrl}/tickets/${ticket.id}`,
-    });
     await sendEmail({
       to: user.email,
       subject: `Your ticket for ${ev.title}`,
-      html,
+      html: ticketEmailHtml({
+        name: user.name,
+        title: ev.title,
+        when: formatEventWhen(ev.starts_at, ev.ends_at),
+        venue: ev.venue_name,
+        seats: booking.seats,
+        ticketUrl: `${siteUrl}/tickets/${ticket.id}`,
+      }),
     });
   } catch (e) {
     console.error("[notifications] sendTicketEmail error:", e);
+  }
+}
+
+/** Best-effort cancellation/refund email. Never throws. */
+export async function sendCancellationEmail(admin: Admin, bookingId: string): Promise<void> {
+  try {
+    const { data: booking } = await admin
+      .from("bookings")
+      .select("attendee_user_id, event_id, amount")
+      .eq("id", bookingId)
+      .maybeSingle();
+    if (!booking) return;
+
+    const [{ data: user }, { data: ev }] = await Promise.all([
+      admin.from("users").select("email, name").eq("id", booking.attendee_user_id).maybeSingle(),
+      admin.from("events").select("title").eq("id", booking.event_id).maybeSingle(),
+    ]);
+    if (!user?.email || !ev) return;
+
+    const refundNote =
+      Number(booking.amount) > 0
+        ? "A full refund has been issued and should reflect in 5–7 business days."
+        : "";
+    await sendEmail({
+      to: user.email,
+      subject: `Cancelled: ${ev.title}`,
+      html: cancellationHtml({ name: user.name, title: ev.title, refundNote }),
+    });
+  } catch (e) {
+    console.error("[notifications] sendCancellationEmail error:", e);
   }
 }

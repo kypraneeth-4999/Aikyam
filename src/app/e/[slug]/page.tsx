@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { supabaseConfigured } from "@/lib/auth";
 import { formatINR } from "@/lib/money";
 import { formatEventWhen } from "@/lib/datetime";
+import { fetchEventReviews, stars } from "@/lib/reviews";
 
 type EventRow = {
   id: string;
@@ -135,6 +136,9 @@ export default async function EventPage({
   const result = await fetchEvent(slug);
   if (!result) notFound();
   const { ev, host, seatsLeft } = result;
+
+  const admin = createAdminClient();
+  const reviews = await fetchEventReviews(admin, ev.id);
 
   const isCancelled = ev.status === "cancelled";
   const isPast =
@@ -276,6 +280,48 @@ export default async function EventPage({
                 </div>
               </Link>
             )}
+
+            {/* Reviews */}
+            <section>
+              <div className="mb-4 flex items-baseline gap-3">
+                <h2 className="font-display text-2xl text-cream">Reviews</h2>
+                {reviews.count > 0 && reviews.avg !== null && (
+                  <span className="text-sm text-gold">
+                    {stars(reviews.avg)} {reviews.avg.toFixed(1)} ({reviews.count})
+                  </span>
+                )}
+              </div>
+              {reviews.items.length === 0 ? (
+                <p className="text-sm text-muted">No reviews yet.</p>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.items.map((rv) => (
+                    <div
+                      key={rv.id}
+                      className="rounded-2xl border border-border bg-surface p-4"
+                    >
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm font-medium text-cream">{rv.author}</p>
+                        <span className="text-sm text-gold">{stars(rv.rating)}</span>
+                      </div>
+                      {rv.comment && (
+                        <p className="mt-2 text-sm text-muted">{rv.comment}</p>
+                      )}
+                      {rv.organizerResponse && (
+                        <div className="mt-3 rounded-xl border border-border bg-surface2 p-3">
+                          <p className="text-xs font-semibold text-gold">
+                            Organiser response
+                          </p>
+                          <p className="mt-1 text-xs text-muted">
+                            {rv.organizerResponse}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
           </div>
 
           {/* RIGHT — reserve box */}

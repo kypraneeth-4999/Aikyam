@@ -8,6 +8,7 @@ import { getCurrentUser, supabaseConfigured } from "@/lib/auth";
 import { normalizeHandleInput } from "@/lib/handles";
 import { formatEventShort } from "@/lib/datetime";
 import { formatINR } from "@/lib/money";
+import { fetchOrganizerRating, stars } from "@/lib/reviews";
 
 type Profile = {
   id: string;
@@ -119,6 +120,7 @@ export default async function OrganizerProfilePage({
     getCurrentUser(),
     fetchUpcomingEvents(profile.id),
   ]);
+  const rating = await fetchOrganizerRating(createAdminClient(), profile.id);
   const isOwner = user?.id === profile.user_id;
   const name = profile.name ?? profile.handle;
   const social = profile.social_links ?? {};
@@ -142,6 +144,11 @@ export default async function OrganizerProfilePage({
             @{profile.handle}
             {profile.city ? ` · ${profile.city}` : ""}
           </p>
+          {rating.count > 0 && rating.avg !== null && (
+            <p className="mt-0.5 text-sm text-gold">
+              {stars(rating.avg)} {rating.avg.toFixed(1)} ({rating.count})
+            </p>
+          )}
         </div>
       </div>
 

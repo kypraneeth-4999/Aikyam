@@ -6,10 +6,12 @@ import { userOrganizesEvent } from "@/lib/authz";
 import { formatEventWhen } from "@/lib/datetime";
 import { formatINR } from "@/lib/money";
 import { ExportCsv } from "./export-csv";
+import { CancelEventButton, RefundButton } from "./manage-actions";
 
 export const metadata = { title: "Manage event" };
 
 type Attendee = {
+  bookingId: string;
   name: string;
   email: string;
   seats: number;
@@ -60,6 +62,7 @@ export default async function ManagePage({
   );
 
   const attendees: Attendee[] = list.map((b) => ({
+    bookingId: b.id,
     name: nameById.get(b.attendee_user_id) ?? "—",
     email: emailById.get(b.attendee_user_id) ?? "",
     seats: b.seats as number,
@@ -99,12 +102,19 @@ export default async function ManagePage({
           </p>
           <p className="mt-1 text-xs uppercase tracking-wide text-muted">{ev.status}</p>
         </div>
-        <Link
-          href={`/organizer/events/${ev.id}/checkin`}
-          className="shrink-0 rounded-full bg-gold px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
-        >
-          Check-in
-        </Link>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          {ev.status !== "cancelled" && (
+            <Link
+              href={`/organizer/events/${ev.id}/checkin`}
+              className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+            >
+              Check-in
+            </Link>
+          )}
+          {ev.status !== "cancelled" && ev.status !== "completed" && (
+            <CancelEventButton eventId={ev.id} />
+          )}
+        </div>
       </div>
 
       <div className="mt-6 grid grid-cols-3 gap-3">
@@ -149,11 +159,12 @@ export default async function ManagePage({
                 <th className="p-3">Seats</th>
                 <th className="p-3">Payment</th>
                 <th className="p-3">In</th>
+                <th className="p-3" />
               </tr>
             </thead>
             <tbody>
-              {attendees.map((a, i) => (
-                <tr key={i} className="border-t border-border">
+              {attendees.map((a) => (
+                <tr key={a.bookingId} className="border-t border-border">
                   <td className="p-3">
                     <p className="text-cream">{a.name}</p>
                     {a.email && <p className="text-xs text-muted">{a.email}</p>}
@@ -167,6 +178,13 @@ export default async function ManagePage({
                     ) : (
                       <span className="text-muted">—</span>
                     )}
+                  </td>
+                  <td className="p-3 text-right">
+                    {a.payment === "paid" ? (
+                      <RefundButton bookingId={a.bookingId} />
+                    ) : a.payment === "refunded" ? (
+                      <span className="text-xs text-muted">Refunded</span>
+                    ) : null}
                   </td>
                 </tr>
               ))}
