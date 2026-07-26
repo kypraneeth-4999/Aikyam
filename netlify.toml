@@ -6,6 +6,10 @@
 
 [build.environment]
   NODE_VERSION = "22"
+  # These are public by design (NEXT_PUBLIC_* ship in the browser bundle; the
+  # anon key is the publishable key, protected by RLS). Real secrets
+  # (service-role, Razorpay, QR/Resend keys) are server-only and stay scanned.
+  SECRETS_SCAN_OMIT_KEYS = "NEXT_PUBLIC_SUPABASE_ANON_KEY,NEXT_PUBLIC_SITE_URL,EMAIL_FROM"
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
