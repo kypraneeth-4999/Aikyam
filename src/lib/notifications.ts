@@ -1,6 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendEmail } from "@/lib/email";
 import { formatEventWhen } from "@/lib/datetime";
+import { SITE_URL } from "@/config/app";
 
 type Admin = ReturnType<typeof createAdminClient>;
 
@@ -70,7 +71,7 @@ export async function sendTicketEmail(admin: Admin, bookingId: string): Promise<
     ]);
     if (!ticket || !user?.email || !ev) return;
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const siteUrl = SITE_URL;
     await sendEmail({
       to: user.email,
       subject: `Your ticket for ${ev.title}`,
@@ -130,7 +131,7 @@ export async function sendCoorganizerInvite(
       admin.from("events").select("title").eq("id", eventId).maybeSingle(),
     ]);
     if (!user?.email || !ev) return;
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    const siteUrl = SITE_URL;
     await sendEmail({
       to: user.email,
       subject: `Invite to co-organise ${ev.title}`,

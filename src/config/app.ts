@@ -19,8 +19,17 @@ export const FEE_BEARER: "organizer" | "attendee" = "organizer";
 
 export const CURRENCY = "INR";
 
-export const SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+/** Normalise a site URL — tolerate a missing protocol (e.g. Netlify env set to
+ *  "aikyam.netlify.app" instead of "https://aikyam.netlify.app"). */
+function normalizeUrl(u: string): string {
+  const t = u.trim();
+  if (!t) return "http://localhost:3000";
+  return /^https?:\/\//i.test(t) ? t : `https://${t}`;
+}
+
+export const SITE_URL = normalizeUrl(
+  process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+);
 
 /**
  * Platform fee (in paise) for an order of `amountPaise` paise.

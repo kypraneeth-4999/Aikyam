@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Abril_Fatface, Poppins } from "next/font/google";
 import "./globals.css";
+import { SITE_URL } from "@/config/app";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
 
@@ -27,9 +28,7 @@ export const metadata: Metadata = {
     "Aikyam is a marketplace for India's cultural events — classical concerts, dance, theatre, folk performances, heritage walks, and craft fairs. Discover, book, and host.",
   applicationName: "Aikyam",
   manifest: "/manifest.webmanifest",
-  metadataBase: new URL(
-    process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  ),
+  metadataBase: new URL(SITE_URL),
   appleWebApp: { capable: true, title: "Aikyam", statusBarStyle: "default" },
 };
 
