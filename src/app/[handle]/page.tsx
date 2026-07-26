@@ -59,23 +59,33 @@ const fetchProfile = cache(
   },
 );
 
-async function fetchUpcomingEvents(organizerId: string): Promise<EventCard[]> {
+async function fetchOrganizerEvents(
+  organizerId: string,
+): Promise<{ upcoming: EventCard[]; past: EventCard[] }> {
   const supabase = await createClient();
   const { data: links } = await supabase
     .from("event_organizers")
     .select("event_id")
-    .eq("organizer_id", organizerId);
+    .eq("organizer_id", organizerId)
+    .eq("status", "accepted");
   const ids = (links ?? []).map((l) => l.event_id as string);
-  if (!ids.length) return [];
+  if (!ids.length) return { upcoming: [], past: [] };
 
   const { data } = await supabase
     .from("events")
     .select("slug, title, category, starts_at, price, is_free")
     .in("id", ids)
     .eq("status", "published")
-    .gte("starts_at", new Date().toISOString())
     .order("starts_at", { ascending: true });
-  return (data ?? []) as EventCard[];
+  const all = (data ?? []) as EventCard[];
+  const now = Date.now();
+  const upcoming = all.filter(
+    (e) => e.starts_at && new Date(e.starts_at).getTime() >= now,
+  );
+  const past = all
+    .filter((e) => !e.starts_at || new Date(e.starts_at).getTime() < now)
+    .reverse();
+  return { upcoming, past };
 }
 
 export async function generateMetadata({
@@ -107,6 +117,31 @@ export async function generateMetadata({
   };
 }
 
+function EventList({ events }: { events: EventCard[] }) {
+  return (
+    <ul className="mt-3 space-y-2">
+      {events.map((ev) => (
+        <li key={ev.slug}>
+          <Link
+            href={`/e/${ev.slug}`}
+            className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-gold/30"
+          >
+            <div>
+              <p className="text-sm font-medium text-cream">{ev.title}</p>
+              <p className="text-xs text-muted">
+                {ev.category} · {formatEventShort(ev.starts_at)}
+              </p>
+            </div>
+            <span className="shrink-0 text-sm font-semibold text-gold">
+              {ev.is_free ? "Free" : formatINR(ev.price)}
+            </span>
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export default async function OrganizerProfilePage({
   params,
 }: {
@@ -118,7 +153,7 @@ export default async function OrganizerProfilePage({
 
   const [user, events] = await Promise.all([
     getCurrentUser(),
-    fetchUpcomingEvents(profile.id),
+    fetchOrganizerEvents(profile.id),
   ]);
   const rating = await fetchOrganizerRating(createAdminClient(), profile.id);
   const isOwner = user?.id === profile.user_id;
@@ -196,31 +231,21 @@ export default async function OrganizerProfilePage({
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
           Upcoming events
         </h2>
-        {events.length === 0 ? (
+        {events.upcoming.length === 0 ? (
           <p className="mt-2 text-sm text-muted">No upcoming events yet.</p>
         ) : (
-          <ul className="mt-3 space-y-2">
-            {events.map((ev) => (
-              <li key={ev.slug}>
-                <Link
-                  href={`/e/${ev.slug}`}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-border bg-surface p-3 transition-colors hover:border-gold/30"
-                >
-                  <div>
-                    <p className="text-sm font-medium text-cream">{ev.title}</p>
-                    <p className="text-xs text-muted">
-                      {ev.category} · {formatEventShort(ev.starts_at)}
-                    </p>
-                  </div>
-                  <span className="shrink-0 text-sm font-semibold text-gold">
-                    {ev.is_free ? "Free" : formatINR(ev.price)}
-                  </span>
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <EventList events={events.upcoming} />
         )}
       </section>
+
+      {events.past.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+            Past events
+          </h2>
+          <EventList events={events.past} />
+        </section>
+      )}
     </main>
   );
 }

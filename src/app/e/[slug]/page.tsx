@@ -32,6 +32,7 @@ type EventRow = {
   languages: string[] | null;
   age_suitability: string | null;
   tags: string[] | null;
+  collaborators: { name: string }[] | null;
   status: "draft" | "published" | "cancelled" | "completed";
 };
 
@@ -139,6 +140,33 @@ export default async function EventPage({
 
   const admin = createAdminClient();
   const reviews = await fetchEventReviews(admin, ev.id);
+
+  const { data: coLinks } = await admin
+    .from("event_organizers")
+    .select("organizer_id")
+    .eq("event_id", ev.id)
+    .eq("role", "cohost")
+    .eq("status", "accepted");
+  const coIds = (coLinks ?? []).map((c) => c.organizer_id as string);
+  let cohosts: { handle: string; name: string }[] = [];
+  if (coIds.length) {
+    const { data: cps } = await admin
+      .from("organizer_profiles")
+      .select("id, handle, user_id")
+      .in("id", coIds);
+    const cuIds = (cps ?? []).map((p) => p.user_id);
+    const { data: cus } = cuIds.length
+      ? await admin.from("users").select("id, name").in("id", cuIds)
+      : { data: [] as { id: string; name: string | null }[] };
+    const nm = new Map((cus ?? []).map((u) => [u.id, u.name]));
+    cohosts = (cps ?? []).map((p) => ({
+      handle: p.handle,
+      name: nm.get(p.user_id) ?? p.handle,
+    }));
+  }
+  const collaborators = Array.isArray(ev.collaborators)
+    ? (ev.collaborators as { name: string }[])
+    : [];
 
   const isCancelled = ev.status === "cancelled";
   const isPast =
@@ -279,6 +307,34 @@ export default async function EventPage({
                   </p>
                 </div>
               </Link>
+            )}
+
+            {(cohosts.length > 0 || collaborators.length > 0) && (
+              <div>
+                <p className="mb-2 text-xs uppercase tracking-wide text-muted">
+                  Co-organisers
+                </p>
+                <div className="flex flex-wrap gap-2 text-sm">
+                  {cohosts.map((c) => (
+                    <Link
+                      key={c.handle}
+                      href={`/@${c.handle}`}
+                      className="rounded-full border border-border bg-surface px-3 py-1 text-cream transition-colors hover:border-gold/30"
+                    >
+                      {c.name}
+                    </Link>
+                  ))}
+                  {collaborators.map((c) => (
+                    <span
+                      key={c.name}
+                      title="External collaborator (unverified)"
+                      className="rounded-full border border-border bg-surface px-3 py-1 text-muted"
+                    >
+                      {c.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
             )}
 
             {/* Reviews */}

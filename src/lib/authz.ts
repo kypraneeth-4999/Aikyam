@@ -15,7 +15,7 @@ export async function organizerProfileId(
   return data?.id ?? null;
 }
 
-/** True if the user is a (primary or co-host) organiser of the event. */
+/** True if the user is an *accepted* organiser (primary or co-host) of the event. */
 export async function userOrganizesEvent(
   admin: Admin,
   userId: string,
@@ -28,6 +28,26 @@ export async function userOrganizesEvent(
     .select("event_id")
     .eq("event_id", eventId)
     .eq("organizer_id", orgId)
+    .eq("status", "accepted")
+    .maybeSingle();
+  return !!data;
+}
+
+/** True only for the primary organiser — gates destructive actions (cancel, etc.). */
+export async function userIsPrimaryOrganizer(
+  admin: Admin,
+  userId: string,
+  eventId: string,
+): Promise<boolean> {
+  const orgId = await organizerProfileId(admin, userId);
+  if (!orgId) return false;
+  const { data } = await admin
+    .from("event_organizers")
+    .select("event_id")
+    .eq("event_id", eventId)
+    .eq("organizer_id", orgId)
+    .eq("role", "primary")
+    .eq("status", "accepted")
     .maybeSingle();
   return !!data;
 }

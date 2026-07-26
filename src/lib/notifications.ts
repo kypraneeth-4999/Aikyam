@@ -117,3 +117,29 @@ export async function sendCancellationEmail(admin: Admin, bookingId: string): Pr
     console.error("[notifications] sendCancellationEmail error:", e);
   }
 }
+
+/** Best-effort co-organiser invite email. Never throws. */
+export async function sendCoorganizerInvite(
+  admin: Admin,
+  eventId: string,
+  invitedUserId: string,
+): Promise<void> {
+  try {
+    const [{ data: user }, { data: ev }] = await Promise.all([
+      admin.from("users").select("email, name").eq("id", invitedUserId).maybeSingle(),
+      admin.from("events").select("title").eq("id", eventId).maybeSingle(),
+    ]);
+    if (!user?.email || !ev) return;
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000";
+    await sendEmail({
+      to: user.email,
+      subject: `Invite to co-organise ${ev.title}`,
+      html: shell(`
+        <h1 style="font-size:20px;margin:0 0 4px;">Co-organiser invite</h1>
+        <p style="color:#666;margin:0 0 16px;">Hi ${esc(user.name ?? "there")}, you've been invited to co-organise <strong>${esc(ev.title)}</strong> on Aikyam.</p>
+        <a href="${siteUrl}/dashboard" style="display:inline-block;background:#F4A01C;color:#0B0914;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:999px;">Review invite</a>`),
+    });
+  } catch (e) {
+    console.error("[notifications] sendCoorganizerInvite error:", e);
+  }
+}

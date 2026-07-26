@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { organizerProfileId } from "@/lib/authz";
 import { formatEventShort } from "@/lib/datetime";
 import { formatINR } from "@/lib/money";
+import { InviteActions } from "./invite-actions";
 
 export const metadata = { title: "Dashboard" };
 
@@ -67,8 +68,21 @@ export default async function DashboardPage() {
   const { data: links } = await admin
     .from("event_organizers")
     .select("event_id")
-    .eq("organizer_id", orgId);
+    .eq("organizer_id", orgId)
+    .eq("status", "accepted");
   const ids = (links ?? []).map((l) => l.event_id as string);
+
+  // Pending co-host invites
+  const { data: pendingLinks } = await admin
+    .from("event_organizers")
+    .select("event_id")
+    .eq("organizer_id", orgId)
+    .eq("status", "pending");
+  const pendingIds = (pendingLinks ?? []).map((p) => p.event_id as string);
+  const { data: inviteEvents } = pendingIds.length
+    ? await admin.from("events").select("id, title").in("id", pendingIds)
+    : { data: [] as { id: string; title: string }[] };
+  const invites = inviteEvents ?? [];
 
   let events: Row[] = [];
   if (ids.length) {
@@ -121,6 +135,25 @@ export default async function DashboardPage() {
           Create event
         </Link>
       </div>
+
+      {invites.length > 0 && (
+        <section className="mt-6">
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-amber-400">
+            Co-organiser invites
+          </h2>
+          <div className="space-y-2">
+            {invites.map((inv) => (
+              <div
+                key={inv.id}
+                className="flex items-center justify-between gap-3 rounded-2xl border border-amber-500/30 bg-amber-500/5 p-4"
+              >
+                <p className="text-sm text-cream">{inv.title}</p>
+                <InviteActions eventId={inv.id} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
 
       {events.length > 0 && (
         <div className="mt-6 grid grid-cols-3 gap-3">

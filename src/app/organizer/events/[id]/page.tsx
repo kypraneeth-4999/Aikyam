@@ -2,11 +2,12 @@ import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
 import { getCurrentUser } from "@/lib/auth";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { userOrganizesEvent } from "@/lib/authz";
+import { userOrganizesEvent, userIsPrimaryOrganizer } from "@/lib/authz";
 import { formatEventWhen } from "@/lib/datetime";
 import { formatINR } from "@/lib/money";
 import { ExportCsv } from "./export-csv";
 import { CancelEventButton, RefundButton } from "./manage-actions";
+import { CoOrganizers } from "./coorganizers";
 
 export const metadata = { title: "Manage event" };
 
@@ -31,14 +32,45 @@ export default async function ManagePage({
 
   const admin = createAdminClient();
   if (!(await userOrganizesEvent(admin, user.id, id))) notFound();
+  const isPrimary = await userIsPrimaryOrganizer(admin, user.id, id);
 
   const { data: ev } = await admin
     .from("events")
-    .select("id, slug, title, status, starts_at, ends_at, venue_name, capacity")
+    .select("id, slug, title, status, starts_at, ends_at, venue_name, capacity, collaborators")
     .eq("id", id)
     .maybeSingle();
   if (!ev) notFound();
 
+  // Co-organisers
+  const { data: orgLinks } = await admin
+    .from("event_organizers")
+    .select("organizer_id, role, status")
+    .eq("event_id", id);
+  const orgIds = (orgLinks ?? []).map((o) => o.organizer_id);
+  const { data: orgProfiles } = orgIds.length
+    ? await admin.from("organizer_profiles").select("id, handle, user_id").in("id", orgIds)
+    : { data: [] as { id: string; handle: string; user_id: string }[] };
+  const orgUserIds = (orgProfiles ?? []).map((o) => o.user_id);
+  const { data: orgUsers } = orgUserIds.length
+    ? await admin.from("users").select("id, name").in("id", orgUserIds)
+    : { data: [] as { id: string; name: string | null }[] };
+  const profById = new Map((orgProfiles ?? []).map((p) => [p.id, p]));
+  const orgNameByUser = new Map((orgUsers ?? []).map((u) => [u.id, u.name]));
+  const organizers = (orgLinks ?? []).map((o) => {
+    const p = profById.get(o.organizer_id);
+    return {
+      organizerId: o.organizer_id as string,
+      handle: p?.handle ?? "",
+      name: (p && orgNameByUser.get(p.user_id)) ?? p?.handle ?? "Organiser",
+      role: o.role as string,
+      status: o.status as string,
+    };
+  });
+  const collaborators = Array.isArray(ev.collaborators)
+    ? (ev.collaborators as { name: string }[])
+    : [];
+
+  // Attendees
   const { data: bookings } = await admin
     .from("bookings")
     .select("id, attendee_user_id, seats, guest_names, amount, payment_status, created_at")
@@ -46,9 +78,9 @@ export default async function ManagePage({
     .order("created_at", { ascending: true });
   const list = bookings ?? [];
 
-  const userIds = [...new Set(list.map((b) => b.attendee_user_id))];
-  const { data: users } = userIds.length
-    ? await admin.from("users").select("id, name, email").in("id", userIds)
+  const attendeeUserIds = [...new Set(list.map((b) => b.attendee_user_id))];
+  const { data: users } = attendeeUserIds.length
+    ? await admin.from("users").select("id, name, email").in("id", attendeeUserIds)
     : { data: [] as { id: string; name: string | null; email: string | null }[] };
   const nameById = new Map((users ?? []).map((u) => [u.id, u.name]));
   const emailById = new Map((users ?? []).map((u) => [u.id, u.email]));
@@ -100,7 +132,10 @@ export default async function ManagePage({
             {formatEventWhen(ev.starts_at, ev.ends_at)}
             {ev.venue_name ? ` · ${ev.venue_name}` : ""}
           </p>
-          <p className="mt-1 text-xs uppercase tracking-wide text-muted">{ev.status}</p>
+          <p className="mt-1 text-xs uppercase tracking-wide text-muted">
+            {ev.status}
+            {!isPrimary ? " · co-host" : ""}
+          </p>
         </div>
         <div className="flex shrink-0 flex-col items-end gap-2">
           {ev.status !== "cancelled" && (
@@ -111,7 +146,7 @@ export default async function ManagePage({
               Check-in
             </Link>
           )}
-          {ev.status !== "cancelled" && ev.status !== "completed" && (
+          {isPrimary && ev.status !== "cancelled" && ev.status !== "completed" && (
             <CancelEventButton eventId={ev.id} />
           )}
         </div>
@@ -134,6 +169,13 @@ export default async function ManagePage({
           <p className="text-xs text-muted">Revenue</p>
         </div>
       </div>
+
+      <CoOrganizers
+        eventId={ev.id}
+        isPrimary={isPrimary}
+        organizers={organizers}
+        collaborators={collaborators}
+      />
 
       <div className="mt-8 flex items-center justify-between">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
@@ -180,7 +222,7 @@ export default async function ManagePage({
                     )}
                   </td>
                   <td className="p-3 text-right">
-                    {a.payment === "paid" ? (
+                    {isPrimary && a.payment === "paid" ? (
                       <RefundButton bookingId={a.bookingId} />
                     ) : a.payment === "refunded" ? (
                       <span className="text-xs text-muted">Refunded</span>

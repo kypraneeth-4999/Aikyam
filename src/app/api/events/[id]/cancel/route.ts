@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
-import { userOrganizesEvent } from "@/lib/authz";
+import { userIsPrimaryOrganizer } from "@/lib/authz";
 import { refundBooking } from "@/lib/refunds";
 import { sendCancellationEmail } from "@/lib/notifications";
 
@@ -15,8 +15,8 @@ export async function POST(
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const admin = createAdminClient();
-  if (!(await userOrganizesEvent(admin, user.id, id))) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!(await userIsPrimaryOrganizer(admin, user.id, id))) {
+    return NextResponse.json({ error: "Only the primary organiser can cancel." }, { status: 403 });
   }
 
   const { data: ev } = await admin
