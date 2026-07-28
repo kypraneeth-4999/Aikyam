@@ -116,7 +116,7 @@ export default async function Home({
               backgroundSize: "80px 80px",
             }}
           />
-          <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-6 pb-16">
+          <div className="relative z-10 mx-auto flex h-full max-w-7xl flex-col justify-end px-4 pb-16 sm:px-6">
             <div className="max-w-2xl">
               <span className="mb-5 inline-block rounded-full border border-gold/25 bg-gold/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-gold">
                 ✦ Featured
@@ -148,7 +148,7 @@ export default async function Home({
           </div>
         </section>
       ) : (
-        <section className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-center">
+        <section className="mx-auto w-full max-w-7xl px-4 py-20 text-center sm:px-6">
           <h1 className="font-display text-4xl text-cream sm:text-6xl">
             India&apos;s cultural events
           </h1>
@@ -158,7 +158,7 @@ export default async function Home({
         </section>
       )}
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-14">
+      <main className="mx-auto w-full max-w-7xl px-4 py-14 sm:px-6">
         {/* CATEGORY PILLS */}
         <div id="events" className="mb-10 flex gap-2 overflow-x-auto pb-2">
           <Link href="/" className={`${pillBase} ${!activeCategory ? pillActive : pillIdle}`}>

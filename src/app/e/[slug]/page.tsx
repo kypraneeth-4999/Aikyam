@@ -226,7 +226,7 @@ export default async function EventPage({
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink/60 to-transparent" />
         <div className="absolute inset-x-0 bottom-0">
-          <div className="mx-auto max-w-7xl px-6 pb-8">
+          <div className="mx-auto max-w-7xl px-4 pb-8 sm:px-6">
             <div className="mb-3 flex items-center gap-2 text-sm">
               <Link href="/" className="text-muted transition-colors hover:text-cream">
                 Events
@@ -249,7 +249,7 @@ export default async function EventPage({
       </section>
 
       {/* BODY — extra bottom padding on mobile clears the sticky booking bar */}
-      <div className="mx-auto max-w-7xl px-4 pb-28 pt-10 sm:px-6 sm:py-12 lg:pb-12">
+      <div className="mx-auto w-full max-w-7xl px-4 pb-28 pt-10 sm:px-6 sm:py-12 lg:pb-12">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           {/* LEFT */}
           <div className="space-y-10 lg:col-span-2">
