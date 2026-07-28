@@ -76,10 +76,16 @@ export async function POST(request: Request) {
     category: String(body.category),
     description: str(body.description, LIMITS.eventDescription.max),
     cover_media: httpUrl(body.cover_media),
-    photos: tagList(body.photos, { maxCount: 5, maxLen: LIMITS.url.max }),
+    photos: (Array.isArray(body.photos) ? body.photos : [])
+      .map((p: unknown) => httpUrl(p))
+      .filter((p: string | null): p is string => !!p)
+      .slice(0, 7),
     starts_at: parseISTLocal(body.starts_at)!.toISOString(),
     ends_at: endsAt ? endsAt.toISOString() : null,
     venue_name: str(body.venue_name, LIMITS.venueName.max),
+    address: str(body.address, 300),
+    city: str(body.city, LIMITS.city.max),
+    venue_type: body.venue_type === "private" ? "private" : "public",
     maps_url: httpUrl(body.maps_url),
     landmark: str(body.landmark, LIMITS.landmark.max),
     capacity: Number(body.capacity),

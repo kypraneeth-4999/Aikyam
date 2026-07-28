@@ -42,6 +42,16 @@ function EventCard({ ev }: { ev: DiscoverEvent }) {
         <h3 className="mb-1 line-clamp-2 text-sm font-semibold leading-snug text-cream transition-colors group-hover:text-gold">
           {ev.title}
         </h3>
+        {(ev.venue_name || ev.city) && (
+          <p className="mb-1 flex items-center gap-1 truncate text-xs text-muted">
+            <span className="shrink-0">◎</span>
+            <span className="truncate">
+              {ev.venue_type === "private"
+                ? (ev.city ?? "Private venue")
+                : [ev.venue_name, ev.city].filter(Boolean).join(", ")}
+            </span>
+          </p>
+        )}
         {ev.host && (
           <p className="mb-4 truncate text-xs text-muted">by {ev.host.name}</p>
         )}
@@ -116,6 +126,7 @@ export default async function Home({
               </h1>
               <p className="mb-8 text-sm text-muted">
                 {formatEventWhen(featured.starts_at, null)}
+                {featured.city ? `  ·  ${featured.city}` : ""}
               </p>
               <div className="flex flex-wrap items-center gap-4">
                 <Link

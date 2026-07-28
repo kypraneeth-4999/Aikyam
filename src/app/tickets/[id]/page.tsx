@@ -36,7 +36,9 @@ export default async function TicketPage({
 
   const { data: ev } = await admin
     .from("events")
-    .select("title, slug, starts_at, ends_at, venue_name, maps_url, landmark, description")
+    .select(
+      "title, slug, starts_at, ends_at, venue_name, address, city, maps_url, landmark, description",
+    )
     .eq("id", booking.event_id)
     .maybeSingle();
 
@@ -93,9 +95,12 @@ export default async function TicketPage({
           {formatEventWhen(ev?.starts_at ?? null, ev?.ends_at ?? null)}
         </p>
         {ev?.venue_name && (
-          <p className="mt-1 text-sm text-muted">
-            {ev.venue_name}
-            {ev.landmark ? ` · ${ev.landmark}` : ""}
+          <p className="mt-1 text-sm text-cream">{ev.venue_name}</p>
+        )}
+        {ev?.address && <p className="text-sm text-muted">{ev.address}</p>}
+        {(ev?.landmark || ev?.city) && (
+          <p className="text-sm text-muted">
+            {[ev?.landmark, ev?.city].filter(Boolean).join(" · ")}
           </p>
         )}
         <p className="mt-3 text-sm text-cream">

@@ -6,6 +6,8 @@ import { CATEGORIES } from "@/config/categories";
 import { createClient } from "@/lib/supabase/client";
 import { LIMITS } from "@/lib/validation";
 
+const MAX_PHOTOS = 7;
+
 /** Now, as a datetime-local string — used to block past start times. */
 function nowLocal(): string {
   const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
@@ -22,36 +24,67 @@ export function EventForm() {
   const [isFree, setIsFree] = useState(false);
   const [description, setDescription] = useState("");
   const [materials, setMaterials] = useState<"included" | "byo">("included");
+  const [venueType, setVenueType] = useState<"public" | "private">("public");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
+  const [photos, setPhotos] = useState<string[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [busy, setBusy] = useState<null | "draft" | "publish">(null);
   const [errors, setErrors] = useState<string[]>([]);
   const [draftMsg, setDraftMsg] = useState<string | null>(null);
 
+  /** Upload one file to Storage via a signed URL; returns its public URL. */
+  async function uploadOne(file: File): Promise<string | null> {
+    const res = await fetch("/api/uploads/sign", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ contentType: file.type }),
+    });
+    const data = await res.json();
+    if (!res.ok) {
+      setUploadError(data.error ?? "Upload failed.");
+      return null;
+    }
+    const supabase = createClient();
+    const { error } = await supabase.storage
+      .from(data.bucket)
+      .uploadToSignedUrl(data.path, data.token, file);
+    if (error) {
+      setUploadError(error.message);
+      return null;
+    }
+    return data.publicUrl as string;
+  }
+
   async function uploadCover(file: File) {
     setUploadError(null);
     setUploading(true);
     try {
-      const res = await fetch("/api/uploads/sign", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ contentType: file.type }),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setUploadError(data.error ?? "Upload failed.");
+      const url = await uploadOne(file);
+      if (url) setCoverUrl(url);
+    } catch {
+      setUploadError("Upload failed. Please try again.");
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function uploadPhotos(files: FileList) {
+    setUploadError(null);
+    setUploading(true);
+    try {
+      const room = MAX_PHOTOS - photos.length;
+      if (room <= 0) {
+        setUploadError(`You can add up to ${MAX_PHOTOS} photos.`);
         return;
       }
-      const supabase = createClient();
-      const { error } = await supabase.storage
-        .from(data.bucket)
-        .uploadToSignedUrl(data.path, data.token, file);
-      if (error) {
-        setUploadError(error.message);
-        return;
+      const picked = Array.from(files).slice(0, room);
+      const urls: string[] = [];
+      for (const f of picked) {
+        const url = await uploadOne(f);
+        if (url) urls.push(url);
       }
-      setCoverUrl(data.publicUrl);
+      if (urls.length) setPhotos((prev) => [...prev, ...urls]);
     } catch {
       setUploadError("Upload failed. Please try again.");
     } finally {
@@ -75,6 +108,10 @@ export function EventForm() {
       category: fd.get("category"),
       description: fd.get("description"),
       cover_media: coverUrl,
+      photos,
+      city: fd.get("city"),
+      address: fd.get("address"),
+      venue_type: venueType,
       starts_at: fd.get("starts_at"),
       ends_at: fd.get("ends_at"),
       venue_name: fd.get("venue_name"),
@@ -173,6 +210,53 @@ export function EventForm() {
         {uploadError && <p className="mt-1 text-xs text-crimson">{uploadError}</p>}
       </div>
 
+      {/* Photo album — "what to expect" */}
+      <div>
+        <label className={labelCls}>Photos (optional)</label>
+        <p className="mt-0.5 text-xs text-muted">
+          Up to {MAX_PHOTOS} shots of what attendees can expect — the space, past
+          sessions, the work they&apos;ll make.
+        </p>
+        {photos.length > 0 && (
+          <div className="mt-2 flex flex-wrap gap-2">
+            {photos.map((src, i) => (
+              <div key={src} className="relative">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={src}
+                  alt={`Photo ${i + 1}`}
+                  className="h-20 w-28 rounded-lg border border-border object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => setPhotos((p) => p.filter((x) => x !== src))}
+                  aria-label={`Remove photo ${i + 1}`}
+                  className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-crimson text-xs text-white"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        {photos.length < MAX_PHOTOS && (
+          <input
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            multiple
+            onChange={(e) => {
+              const fs = e.target.files;
+              if (fs && fs.length) uploadPhotos(fs);
+              e.target.value = "";
+            }}
+            className="mt-2 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-surface2 file:px-3 file:py-2 file:text-sm file:text-cream hover:file:bg-surface"
+          />
+        )}
+        <p className="mt-1 text-xs text-muted">
+          {photos.length}/{MAX_PHOTOS} added
+        </p>
+      </div>
+
       <div>
         <label className={labelCls}>Description</label>
         <textarea
@@ -211,16 +295,86 @@ export function EventForm() {
         </div>
       </div>
 
-      <div>
-        <label className={labelCls}>Venue name</label>
-        <input
-          name="venue_name"
-          maxLength={LIMITS.venueName.max}
-          placeholder="The Clay Studio, Kothrud"
-          className={inputCls}
-        />
-      </div>
-      <div className="grid grid-cols-2 gap-3">
+      {/* Where */}
+      <div className="space-y-3 rounded-xl border border-border p-4">
+        <p className="text-sm font-semibold text-cream">Where</p>
+
+        <div>
+          <label className={labelCls}>Venue type</label>
+          <div className="mt-1 grid grid-cols-2 gap-2">
+            {(
+              [
+                ["public", "Public venue", "Café, studio, hall — address shown to everyone"],
+                ["private", "Private venue", "A home or private space — address only shared with confirmed attendees"],
+              ] as const
+            ).map(([value, label, hint]) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setVenueType(value)}
+                className={`rounded-xl border p-3 text-left transition-colors ${
+                  venueType === value
+                    ? "border-gold bg-gold/10"
+                    : "border-border bg-surface2 hover:border-gold/30"
+                }`}
+              >
+                <span
+                  className={`block text-sm font-medium ${venueType === value ? "text-gold" : "text-cream"}`}
+                >
+                  {label}
+                </span>
+                <span className="mt-0.5 block text-xs text-muted">{hint}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelCls}>Venue name</label>
+          <input
+            name="venue_name"
+            maxLength={LIMITS.venueName.max}
+            placeholder="The Clay Studio"
+            className={inputCls}
+          />
+        </div>
+
+        <div>
+          <label className={labelCls}>Full address</label>
+          <input
+            name="address"
+            maxLength={300}
+            placeholder="12 Mhatre Bridge Rd, Kothrud, Pune 411038"
+            className={inputCls}
+          />
+          {venueType === "private" && (
+            <p className="mt-1 text-xs text-amber-300">
+              Only shared with attendees after they book.
+            </p>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className={labelCls}>City</label>
+            <input
+              name="city"
+              maxLength={LIMITS.city.max}
+              placeholder="Pune"
+              className={inputCls}
+            />
+          </div>
+          <div>
+            <label className={labelCls}>Landmark</label>
+            <input
+              name="landmark"
+              maxLength={LIMITS.landmark.max}
+              placeholder="Near Mhatre bridge"
+              className={inputCls}
+            />
+          </div>
+        </div>
+
         <div>
           <label className={labelCls}>Google Maps link</label>
           <input
@@ -230,15 +384,9 @@ export function EventForm() {
             placeholder="https://maps.app.goo.gl/…"
             className={inputCls}
           />
-        </div>
-        <div>
-          <label className={labelCls}>Landmark</label>
-          <input
-            name="landmark"
-            maxLength={LIMITS.landmark.max}
-            placeholder="Near Mhatre bridge"
-            className={inputCls}
-          />
+          <p className="mt-1 text-xs text-muted">
+            Optional — we build a directions link from the address if you skip this.
+          </p>
         </div>
       </div>
 

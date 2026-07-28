@@ -4,10 +4,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { supabaseConfigured } from "@/lib/auth";
+import { getCurrentUser, supabaseConfigured } from "@/lib/auth";
 import { formatINR } from "@/lib/money";
 import { formatEventWhen } from "@/lib/datetime";
 import { fetchEventReviews, stars } from "@/lib/reviews";
+import { fetchOrganizerTrust, type OrganizerTrust } from "@/lib/trust";
+import { userOrganizesEvent } from "@/lib/authz";
+import { HostCard } from "@/components/host-card";
+import { EventGallery } from "@/components/event-gallery";
+import { VenueBlock } from "@/components/venue-block";
 
 type EventRow = {
   id: string;
@@ -18,6 +23,9 @@ type EventRow = {
   starts_at: string | null;
   ends_at: string | null;
   venue_name: string | null;
+  address: string | null;
+  city: string | null;
+  venue_type: "public" | "private";
   maps_url: string | null;
   landmark: string | null;
   capacity: number | null;
@@ -36,7 +44,13 @@ type EventRow = {
   status: "draft" | "published" | "cancelled" | "completed";
 };
 
-type Host = { handle: string; name: string; verified: boolean };
+type Host = {
+  handle: string;
+  name: string;
+  photo: string | null;
+  bio: string | null;
+  trust: OrganizerTrust;
+};
 
 const fetchEvent = cache(async (slug: string) => {
   if (!supabaseConfigured()) return null;
@@ -60,19 +74,20 @@ const fetchEvent = cache(async (slug: string) => {
   if (eo) {
     const { data: op } = await admin
       .from("organizer_profiles")
-      .select("handle, user_id, verification_status")
+      .select("id, handle, user_id, bio, profile_photo")
       .eq("id", eo.organizer_id)
       .maybeSingle();
     if (op) {
-      const { data: u } = await admin
-        .from("users")
-        .select("name")
-        .eq("id", op.user_id)
-        .maybeSingle();
+      const [{ data: u }, trust] = await Promise.all([
+        admin.from("users").select("name").eq("id", op.user_id).maybeSingle(),
+        fetchOrganizerTrust(admin, op.id),
+      ]);
       host = {
         handle: op.handle,
         name: u?.name ?? op.handle,
-        verified: op.verification_status === "verified",
+        photo: op.profile_photo,
+        bio: op.bio,
+        trust,
       };
     }
   }
@@ -98,9 +113,10 @@ export async function generateMetadata({
   if (!result) return { title: "Event not found" };
   const { ev } = result;
   const priceLabel = ev.is_free ? "Free" : formatINR(ev.price);
+  const where = [ev.venue_name, ev.city].filter(Boolean).join(", ");
   const description =
     ev.description ??
-    `${priceLabel} · ${formatEventWhen(ev.starts_at, ev.ends_at)}`;
+    `${priceLabel} · ${formatEventWhen(ev.starts_at, ev.ends_at)}${where ? ` · ${where}` : ""}`;
   const images = ev.cover_media
     ? [ev.cover_media]
     : ev.photos?.length
@@ -139,6 +155,22 @@ export default async function EventPage({
   const { ev, host, seatsLeft } = result;
 
   const admin = createAdminClient();
+  const user = await getCurrentUser();
+
+  // A private venue's exact address is revealed to confirmed attendees and to
+  // the event's own organisers.
+  let revealed = false;
+  if (user) {
+    const { data: myBooking } = await admin
+      .from("bookings")
+      .select("id")
+      .eq("event_id", ev.id)
+      .eq("attendee_user_id", user.id)
+      .eq("payment_status", "paid")
+      .maybeSingle();
+    revealed = !!myBooking || (await userOrganizesEvent(admin, user.id, ev.id));
+  }
+
   const reviews = await fetchEventReviews(admin, ev.id);
 
   const { data: coLinks } = await admin
@@ -176,6 +208,8 @@ export default async function EventPage({
   const bookable = !isCancelled && !isPast && !soldOut;
   const priceLabel = ev.is_free ? "Free" : formatINR(ev.price);
   const heroImg = ev.cover_media ?? ev.photos?.[0] ?? null;
+  const gallery = (ev.photos ?? []).filter(Boolean);
+  const whereShort = [ev.venue_name, ev.city].filter(Boolean).join(", ");
 
   return (
     <>
@@ -207,6 +241,9 @@ export default async function EventPage({
             <h1 className="max-w-3xl font-display text-4xl leading-none text-cream md:text-6xl">
               {ev.title}
             </h1>
+            {whereShort && (
+              <p className="mt-3 text-sm text-cream/70">◎ {whereShort}</p>
+            )}
           </div>
         </div>
       </section>
@@ -221,17 +258,10 @@ export default async function EventPage({
                 <span className="text-xs text-gold">◷</span>
                 {formatEventWhen(ev.starts_at, ev.ends_at)}
               </div>
-              {ev.venue_name && (
+              {ev.city && (
                 <div className={infoPill}>
                   <span className="text-xs text-gold">◎</span>
-                  {ev.maps_url ? (
-                    <a href={ev.maps_url} target="_blank" rel="noopener noreferrer nofollow" className="hover:text-cream">
-                      {ev.venue_name}
-                    </a>
-                  ) : (
-                    ev.venue_name
-                  )}
-                  {ev.landmark ? ` · ${ev.landmark}` : ""}
+                  {ev.city}
                 </div>
               )}
               {ev.languages && ev.languages.length > 0 && (
@@ -249,8 +279,10 @@ export default async function EventPage({
             </div>
 
             {ev.description && (
-              <div>
-                <h2 className="mb-5 font-display text-2xl text-cream">About this event</h2>
+              <section>
+                <h2 className="mb-5 font-display text-2xl text-cream">
+                  About this event
+                </h2>
                 <div className="space-y-4">
                   {ev.description.split("\n\n").map((para, i) => (
                     <p key={i} className="text-sm leading-relaxed text-muted">
@@ -258,11 +290,23 @@ export default async function EventPage({
                     </p>
                   ))}
                 </div>
-              </div>
+              </section>
             )}
 
-            <div>
-              <h2 className="mb-5 font-display text-2xl text-cream">Details</h2>
+            <EventGallery photos={gallery} title={ev.title} />
+
+            <VenueBlock
+              venueName={ev.venue_name}
+              address={ev.address}
+              landmark={ev.landmark}
+              city={ev.city}
+              mapsUrl={ev.maps_url}
+              venueType={ev.venue_type}
+              revealed={revealed}
+            />
+
+            <section>
+              <h2 className="mb-4 font-display text-2xl text-cream">Good to know</h2>
               <dl className="space-y-3 text-sm">
                 {ev.what_to_bring && (
                   <div>
@@ -289,24 +333,16 @@ export default async function EventPage({
                   </div>
                 )}
               </dl>
-            </div>
+            </section>
 
             {host && (
-              <Link
-                href={`/@${host.handle}`}
-                className="flex items-center gap-3 rounded-2xl border border-border bg-surface p-4 transition-colors hover:border-gold/30"
-              >
-                <div className="flex h-11 w-11 items-center justify-center rounded-full border border-gold/20 bg-gold/10 text-sm font-bold text-gold">
-                  {host.name.slice(0, 1).toUpperCase()}
-                </div>
-                <div className="text-sm">
-                  <p className="text-xs text-muted">Organised by</p>
-                  <p className="font-medium text-cream">
-                    {host.name}
-                    {host.verified ? " ✓" : ""}
-                  </p>
-                </div>
-              </Link>
+              <HostCard
+                handle={host.handle}
+                name={host.name}
+                photo={host.photo}
+                bio={host.bio}
+                trust={host.trust}
+              />
             )}
 
             {(cohosts.length > 0 || collaborators.length > 0) && (
@@ -348,7 +384,9 @@ export default async function EventPage({
                 )}
               </div>
               {reviews.items.length === 0 ? (
-                <p className="text-sm text-muted">No reviews yet.</p>
+                <p className="text-sm text-muted">
+                  No reviews yet — only people who checked in at the event can leave one.
+                </p>
               ) : (
                 <div className="space-y-4">
                   {reviews.items.map((rv) => (
@@ -409,6 +447,25 @@ export default async function EventPage({
               <p className="mt-3 text-center text-xs text-muted">
                 Payment confirmed securely before your ticket is issued.
               </p>
+
+              {host && (
+                <div className="mt-4 border-t border-border pt-4 text-xs">
+                  <p className="text-muted">Hosted by</p>
+                  <Link
+                    href={`/@${host.handle}`}
+                    className="font-medium text-cream hover:text-gold"
+                  >
+                    {host.name}
+                    {host.trust.verified ? " ✓" : ""}
+                  </Link>
+                  {host.trust.eventsCompleted > 0 && (
+                    <p className="mt-1 text-muted">
+                      {host.trust.eventsCompleted} event
+                      {host.trust.eventsCompleted === 1 ? "" : "s"} completed
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
