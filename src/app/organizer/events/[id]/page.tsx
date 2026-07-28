@@ -121,7 +121,7 @@ export default async function ManagePage({
   }));
 
   return (
-    <main className="mx-auto w-full max-w-3xl flex-1 px-6 py-10">
+    <main className="mx-auto w-full max-w-3xl flex-1 px-4 sm:px-6 py-10">
       <Link href="/dashboard" className="text-sm text-muted transition-colors hover:text-cream">
         ← Dashboard
       </Link>

@@ -214,7 +214,7 @@ export default async function EventPage({
   return (
     <>
       {/* HERO */}
-      <section className="relative h-[50vh] overflow-hidden bg-surface2">
+      <section className="relative h-[40vh] min-h-[300px] overflow-hidden bg-surface2 sm:h-[50vh]">
         {heroImg ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src={heroImg} alt={ev.title} className="h-full w-full object-cover opacity-60" />
@@ -238,7 +238,7 @@ export default async function EventPage({
               {ev.category}
               {isCancelled ? " · Cancelled" : isPast ? " · Ended" : ""}
             </span>
-            <h1 className="max-w-3xl font-display text-4xl leading-none text-cream md:text-6xl">
+            <h1 className="max-w-3xl font-display text-3xl leading-tight text-cream sm:text-4xl sm:leading-none md:text-6xl">
               {ev.title}
             </h1>
             {whereShort && (
@@ -248,8 +248,8 @@ export default async function EventPage({
         </div>
       </section>
 
-      {/* BODY */}
-      <div className="mx-auto max-w-7xl px-6 py-12">
+      {/* BODY — extra bottom padding on mobile clears the sticky booking bar */}
+      <div className="mx-auto max-w-7xl px-4 pb-28 pt-10 sm:px-6 sm:py-12 lg:pb-12">
         <div className="grid grid-cols-1 gap-10 lg:grid-cols-3">
           {/* LEFT */}
           <div className="space-y-10 lg:col-span-2">
@@ -418,8 +418,8 @@ export default async function EventPage({
             </section>
           </div>
 
-          {/* RIGHT — reserve box */}
-          <div className="lg:col-span-1">
+          {/* RIGHT — reserve box (desktop; mobile uses the sticky bar below) */}
+          <div className="hidden lg:col-span-1 lg:block">
             <div className="sticky top-24 rounded-2xl border border-border bg-surface p-6">
               <p className="mb-1 text-xs uppercase tracking-widest text-muted">
                 {ev.is_free ? "Free event" : "Tickets from"}
@@ -468,6 +468,36 @@ export default async function EventPage({
               )}
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Sticky booking bar — phones and tablets */}
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-ink/95 backdrop-blur-md pb-[env(safe-area-inset-bottom)] lg:hidden">
+        <div className="flex items-center justify-between gap-4 px-4 py-3">
+          <div className="min-w-0">
+            <p className="font-display text-xl leading-none text-gold">
+              {priceLabel}
+            </p>
+            {seatsLeft !== null && bookable && (
+              <p className="mt-1 truncate text-xs text-muted">
+                {seatsLeft <= 5
+                  ? `Only ${seatsLeft} left`
+                  : `${seatsLeft} seats available`}
+              </p>
+            )}
+          </div>
+          {bookable ? (
+            <Link
+              href={`/e/${ev.slug}/book`}
+              className="shrink-0 rounded-xl bg-gold px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+            >
+              {ev.is_free ? "Register free" : "Book tickets"}
+            </Link>
+          ) : (
+            <span className="shrink-0 rounded-xl border border-border bg-surface2 px-6 py-3 text-sm font-semibold text-muted">
+              {isCancelled ? "Cancelled" : isPast ? "Ended" : "Sold out"}
+            </span>
+          )}
         </div>
       </div>
     </>

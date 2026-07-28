@@ -273,7 +273,7 @@ export function EventForm() {
         </p>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Starts (IST)</label>
           <input
@@ -301,7 +301,7 @@ export function EventForm() {
 
         <div>
           <label className={labelCls}>Venue type</label>
-          <div className="mt-1 grid grid-cols-2 gap-2">
+          <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
             {(
               [
                 ["public", "Public venue", "Café, studio, hall — address shown to everyone"],
@@ -354,7 +354,7 @@ export function EventForm() {
           )}
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className={labelCls}>City</label>
             <input
@@ -390,7 +390,7 @@ export function EventForm() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Capacity</label>
           <input
@@ -457,7 +457,7 @@ export function EventForm() {
           className={inputCls}
         />
       </div>
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div>
           <label className={labelCls}>Languages</label>
           <input

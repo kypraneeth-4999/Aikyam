@@ -150,7 +150,7 @@ export default async function MyTicketsPage() {
   const { upcoming, past, cancelled } = group(rows);
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-10">
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 sm:px-6 py-10">
       <h1 className="font-display text-3xl text-cream">My tickets</h1>
       {rows.length === 0 ? (
         <p className="mt-8 text-sm text-muted">

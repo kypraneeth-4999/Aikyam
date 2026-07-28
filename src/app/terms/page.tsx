@@ -2,7 +2,7 @@ export const metadata = { title: "Terms of Use" };
 
 export default function TermsPage() {
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-12">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 sm:px-6 py-12">
       <h1 className="font-display text-3xl text-cream">Terms of Use</h1>
       <p className="mt-2 text-xs text-muted">
         Draft — pending review by legal counsel before public launch.

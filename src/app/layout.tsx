@@ -34,6 +34,8 @@ export const metadata: Metadata = {
 
 export const viewport: Viewport = {
   themeColor: "#0b0914",
+  // Let content reach the edges so env(safe-area-inset-*) works on notched phones.
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

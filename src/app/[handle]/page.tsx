@@ -183,7 +183,7 @@ export default async function OrganizerProfilePage({
   const social = profile.social_links ?? {};
 
   return (
-    <main className="mx-auto w-full max-w-lg flex-1 px-6 py-12">
+    <main className="mx-auto w-full max-w-lg flex-1 px-4 sm:px-6 py-12">
       <div className="flex items-center gap-4">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-full border border-gold/20 bg-gold/10 font-display text-2xl text-gold">
           {name.slice(0, 1).toUpperCase()}

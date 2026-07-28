@@ -125,7 +125,7 @@ export default async function DashboardPage() {
   const totalBooked = events.reduce((s, e) => s + e.booked, 0);
 
   return (
-    <main className="mx-auto w-full max-w-2xl flex-1 px-6 py-10">
+    <main className="mx-auto w-full max-w-2xl flex-1 px-4 sm:px-6 py-10">
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl text-cream">Dashboard</h1>
         <Link

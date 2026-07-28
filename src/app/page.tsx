@@ -95,7 +95,7 @@ export default async function Home({
     <>
       {/* HERO */}
       {featured ? (
-        <section className="relative h-[70vh] overflow-hidden">
+        <section className="relative h-[60vh] min-h-[420px] overflow-hidden sm:h-[70vh]">
           <div className="absolute inset-0 bg-surface2">
             {heroImg && (
               // eslint-disable-next-line @next/next/no-img-element
@@ -121,7 +121,7 @@ export default async function Home({
               <span className="mb-5 inline-block rounded-full border border-gold/25 bg-gold/15 px-3 py-1 text-xs font-semibold uppercase tracking-widest text-gold">
                 ✦ Featured
               </span>
-              <h1 className="mb-4 font-display text-5xl leading-none text-cream md:text-7xl">
+              <h1 className="mb-4 font-display text-3xl leading-tight text-cream sm:text-5xl sm:leading-none md:text-7xl">
                 {featured.title}
               </h1>
               <p className="mb-8 text-sm text-muted">
@@ -148,7 +148,7 @@ export default async function Home({
           </div>
         </section>
       ) : (
-        <section className="mx-auto max-w-7xl px-6 py-20 text-center">
+        <section className="mx-auto max-w-7xl px-4 sm:px-6 py-20 text-center">
           <h1 className="font-display text-4xl text-cream sm:text-6xl">
             India&apos;s cultural events
           </h1>
@@ -158,7 +158,7 @@ export default async function Home({
         </section>
       )}
 
-      <main className="mx-auto max-w-7xl px-6 py-14">
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 py-14">
         {/* CATEGORY PILLS */}
         <div id="events" className="mb-10 flex gap-2 overflow-x-auto pb-2">
           <Link href="/" className={`${pillBase} ${!activeCategory ? pillActive : pillIdle}`}>
