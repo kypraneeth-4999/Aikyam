@@ -2,21 +2,41 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser } from "@/lib/auth";
 
-/** Update the current user's profile (name / city). */
+/** Update the current user's profile (name / city / notification prefs). */
 export async function PUT(request: Request) {
   const user = await getCurrentUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const body = await request.json().catch(() => ({}) as Record<string, unknown>);
-  const name = String(body.name ?? "").trim().slice(0, 100);
-  const city =
-    typeof body.city === "string" ? body.city.trim().slice(0, 100) || null : null;
-  if (name.length < 2) {
-    return NextResponse.json({ error: "Please enter your name." }, { status: 400 });
+  const patch: Record<string, unknown> = {};
+
+  if (body.name !== undefined) {
+    const name = String(body.name ?? "").trim().slice(0, 100);
+    if (name.length < 2) {
+      return NextResponse.json({ error: "Please enter your name." }, { status: 400 });
+    }
+    patch.name = name;
+  }
+
+  if (body.city !== undefined) {
+    patch.city =
+      typeof body.city === "string" ? body.city.trim().slice(0, 100) || null : null;
+  }
+
+  if (body.notification_prefs !== undefined) {
+    const p = body.notification_prefs as Record<string, unknown> | null;
+    patch.notification_prefs = {
+      email: p?.email !== false,
+      whatsapp: p?.whatsapp !== false,
+    };
+  }
+
+  if (Object.keys(patch).length === 0) {
+    return NextResponse.json({ error: "Nothing to update." }, { status: 400 });
   }
 
   const admin = createAdminClient();
-  const { error } = await admin.from("users").update({ name, city }).eq("id", user.id);
+  const { error } = await admin.from("users").update(patch).eq("id", user.id);
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
   return NextResponse.json({ ok: true });
 }

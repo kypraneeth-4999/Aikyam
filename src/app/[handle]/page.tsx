@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { cache } from "react";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentUser, supabaseConfigured } from "@/lib/auth";
@@ -88,6 +88,24 @@ async function fetchOrganizerEvents(
   return { upcoming, past };
 }
 
+/**
+ * If a handle was changed, its old form still resolves — we look it up in
+ * handle_history and permanently redirect (JAD P2: links in an Instagram bio
+ * must never die).
+ */
+async function findRenamedHandle(handleParam: string): Promise<string | null> {
+  if (!supabaseConfigured()) return null;
+  const old = normalizeHandleInput(decodeURIComponent(handleParam));
+  if (!old) return null;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("organizer_profiles")
+    .select("handle, handle_history")
+    .contains("handle_history", [{ old_handle: old }])
+    .maybeSingle();
+  return (data?.handle as string) ?? null;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -149,7 +167,11 @@ export default async function OrganizerProfilePage({
 }) {
   const { handle } = await params;
   const profile = await fetchProfile(handle);
-  if (!profile) notFound();
+  if (!profile) {
+    const renamed = await findRenamedHandle(handle);
+    if (renamed) permanentRedirect(`/@${renamed}`);
+    notFound();
+  }
 
   const [user, events] = await Promise.all([
     getCurrentUser(),

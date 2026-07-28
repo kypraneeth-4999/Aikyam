@@ -144,6 +144,7 @@ export function CoOrganizers({
               value={handle}
               onChange={(e) => setHandle(e.target.value)}
               placeholder="Invite an organiser by @handle"
+              maxLength={31}
               className="flex-1 rounded-xl border border-border bg-surface2 px-3 py-2 text-sm text-cream outline-none focus:border-gold/40"
             />
             <button
@@ -159,6 +160,7 @@ export function CoOrganizers({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Or add an external name"
+              maxLength={100}
               className="flex-1 rounded-xl border border-border bg-surface2 px-3 py-2 text-sm text-cream outline-none focus:border-gold/40"
             />
             <button

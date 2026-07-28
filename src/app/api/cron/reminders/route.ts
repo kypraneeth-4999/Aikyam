@@ -65,11 +65,12 @@ async function runReminders() {
         .insert({ booking_id: b.id, kind, channel: "email" });
       if (claimErr) continue; // already claimed elsewhere
 
-      const ok = await sendReminderEmail(admin, b.id as string, kind);
-      if (ok) {
+      const outcome = await sendReminderEmail(admin, b.id as string, kind);
+      if (outcome === "sent") {
         sent++;
-      } else {
-        // Sending failed — release the claim so a later run can retry.
+      } else if (outcome === "failed") {
+        // Only a genuine failure releases the claim, so a later run retries.
+        // "skipped" (opted out / missing data) keeps the claim — never retried.
         await admin
           .from("notification_log")
           .delete()

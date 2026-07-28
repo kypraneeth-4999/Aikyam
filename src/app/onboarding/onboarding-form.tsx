@@ -19,6 +19,7 @@ export function OnboardingForm({ defaultCity = "" }: { defaultCity?: string }) {
           name="name"
           required
           minLength={2}
+          maxLength={100}
           autoComplete="name"
           placeholder="Priya Sharma"
           className={input}
@@ -29,6 +30,7 @@ export function OnboardingForm({ defaultCity = "" }: { defaultCity?: string }) {
         <input
           name="city"
           defaultValue={defaultCity}
+          maxLength={100}
           autoComplete="address-level2"
           placeholder="Pune"
           className={input}

@@ -5,6 +5,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { platformFeePaise } from "@/config/app";
 import { issueTicketForBooking } from "@/lib/bookings";
 import { sendTicketEmail } from "@/lib/notifications";
+import { LIMITS } from "@/lib/validation";
 
 /** Create a booking: atomic pending row, then Razorpay order (paid) or
  *  immediate confirmation + ticket (free). Payment truth still comes from the
@@ -18,12 +19,21 @@ export async function POST(request: Request) {
   const seats = Number(body.seats ?? 1);
   const withAddon = Boolean(body.with_addon);
   const guestNames = Array.isArray(body.guest_names)
-    ? body.guest_names.map((g: unknown) => String(g).trim()).slice(0, Math.max(1, seats))
+    ? body.guest_names
+        .map((g: unknown) => String(g).trim().slice(0, LIMITS.guestName.max))
+        .slice(0, Math.max(1, seats))
     : [];
-  const idempotencyKey = String(body.idempotency_key || crypto.randomUUID());
+  const idempotencyKey = String(body.idempotency_key || crypto.randomUUID()).slice(0, 200);
 
-  if (!Number.isInteger(seats) || seats < 1 || seats > 20) {
-    return NextResponse.json({ error: "Choose between 1 and 20 seats." }, { status: 400 });
+  if (
+    !Number.isInteger(seats) ||
+    seats < LIMITS.seats.min ||
+    seats > LIMITS.seats.max
+  ) {
+    return NextResponse.json(
+      { error: `Choose between ${LIMITS.seats.min} and ${LIMITS.seats.max} seats.` },
+      { status: 400 },
+    );
   }
 
   const admin = createAdminClient();

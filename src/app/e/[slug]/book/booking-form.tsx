@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatINR } from "@/lib/money";
+import { LIMITS } from "@/lib/validation";
 
 type Props = {
   slug: string;
@@ -177,6 +178,7 @@ export function BookingForm({
               setNames((prev) => prev.map((v, j) => (j === i ? e.target.value : v)))
             }
             placeholder={`Guest ${i + 1}`}
+            maxLength={LIMITS.guestName.max}
             className={input}
           />
         ))}

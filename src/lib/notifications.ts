@@ -119,39 +119,51 @@ export async function sendCancellationEmail(admin: Admin, bookingId: string): Pr
   }
 }
 
+/** Outcome of a reminder attempt — "skipped" must NOT be retried. */
+export type SendOutcome = "sent" | "skipped" | "failed";
+
 /**
  * Best-effort event reminder email (24h / 3h before start). Never throws.
- * Returns true only if an email was actually sent.
+ * Returns "skipped" when the attendee opted out or the data is missing, so the
+ * caller keeps the claim instead of retrying forever.
  */
 export async function sendReminderEmail(
   admin: Admin,
   bookingId: string,
   kind: "reminder_24h" | "reminder_3h",
-): Promise<boolean> {
+): Promise<SendOutcome> {
   try {
     const { data: booking } = await admin
       .from("bookings")
       .select("attendee_user_id, event_id, seats")
       .eq("id", bookingId)
       .maybeSingle();
-    if (!booking) return false;
+    if (!booking) return "skipped";
 
     const [{ data: ticket }, { data: user }, { data: ev }] = await Promise.all([
       admin.from("tickets").select("id").eq("booking_id", bookingId).maybeSingle(),
-      admin.from("users").select("email, name").eq("id", booking.attendee_user_id).maybeSingle(),
+      admin
+        .from("users")
+        .select("email, name, notification_prefs")
+        .eq("id", booking.attendee_user_id)
+        .maybeSingle(),
       admin
         .from("events")
         .select("title, starts_at, ends_at, venue_name, maps_url, landmark, what_to_bring")
         .eq("id", booking.event_id)
         .maybeSingle(),
     ]);
-    if (!ticket || !user?.email || !ev) return false;
+    if (!ticket || !user?.email || !ev) return "skipped";
+
+    // Reminders are non-essential — honour the opt-out (JAD P12).
+    const prefs = (user.notification_prefs ?? {}) as { email?: boolean };
+    if (prefs.email === false) return "skipped";
 
     const soon = kind === "reminder_3h" ? "in about 3 hours" : "tomorrow";
     const heading = kind === "reminder_3h" ? "Starting soon ⏰" : "See you tomorrow 👋";
     const ticketUrl = `${SITE_URL}/tickets/${ticket.id}`;
 
-    return await sendEmail({
+    const ok = await sendEmail({
       to: user.email,
       subject: `Reminder: ${ev.title} is ${soon}`,
       html: shell(`
@@ -166,9 +178,10 @@ export async function sendReminderEmail(
         <a href="${ticketUrl}" style="display:inline-block;background:#F4A01C;color:#0B0914;font-weight:600;text-decoration:none;padding:12px 24px;border-radius:999px;">Open your ticket</a>
         ${ev.maps_url ? `<p style="margin:16px 0 0;"><a href="${ev.maps_url}" style="color:#666;font-size:13px;">Get directions</a></p>` : ""}`),
     });
+    return ok ? "sent" : "failed";
   } catch (e) {
     console.error("[notifications] sendReminderEmail error:", e);
-    return false;
+    return "failed";
   }
 }
 

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { LIMITS } from "@/lib/validation";
 
 export function ReviewForm({ bookingId }: { bookingId: string }) {
   const router = useRouter();
@@ -66,7 +67,7 @@ export function ReviewForm({ bookingId }: { bookingId: string }) {
         value={comment}
         onChange={(e) => setComment(e.target.value)}
         rows={2}
-        maxLength={1000}
+        maxLength={LIMITS.reviewComment.max}
         placeholder="How was it? (optional)"
         className="mt-2 w-full rounded-lg border border-border bg-surface px-2 py-1.5 text-xs text-cream outline-none focus:border-gold/40"
       />

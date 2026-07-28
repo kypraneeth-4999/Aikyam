@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { normalizeHandleInput, validateHandleFormat } from "@/lib/handles";
+import { LIMITS } from "@/lib/validation";
 
 type Status = { checking: boolean; available: boolean | null; reason?: string };
 
@@ -114,10 +115,13 @@ export function ClaimForm({
           value={bio}
           onChange={(e) => setBio(e.target.value)}
           rows={3}
-          maxLength={500}
+          maxLength={LIMITS.bio.max}
           placeholder="What kind of experiences do you host?"
           className={input}
         />
+        <p className="mt-1 text-right text-xs text-muted">
+          {bio.length}/{LIMITS.bio.max}
+        </p>
       </div>
 
       <div>
@@ -125,6 +129,7 @@ export function ClaimForm({
         <input
           value={city}
           onChange={(e) => setCity(e.target.value)}
+          maxLength={LIMITS.city.max}
           placeholder="Pune"
           className={input}
         />

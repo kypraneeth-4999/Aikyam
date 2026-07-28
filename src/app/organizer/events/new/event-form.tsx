@@ -4,6 +4,13 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CATEGORIES } from "@/config/categories";
 import { createClient } from "@/lib/supabase/client";
+import { LIMITS } from "@/lib/validation";
+
+/** Now, as a datetime-local string — used to block past start times. */
+function nowLocal(): string {
+  const d = new Date(Date.now() - new Date().getTimezoneOffset() * 60000);
+  return d.toISOString().slice(0, 16);
+}
 
 const inputCls =
   "mt-1 w-full rounded-xl border border-border bg-surface2 px-3 py-2.5 text-sm text-cream placeholder:text-muted outline-none focus:border-gold/40 transition-colors";
@@ -13,6 +20,7 @@ export function EventForm() {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [isFree, setIsFree] = useState(false);
+  const [description, setDescription] = useState("");
   const [materials, setMaterials] = useState<"included" | "byo">("included");
   const [coverUrl, setCoverUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -120,7 +128,14 @@ export function EventForm() {
     >
       <div>
         <label className={labelCls}>Title</label>
-        <input name="title" required minLength={3} placeholder="Beginner's wheel-throwing pottery" className={inputCls} />
+        <input
+          name="title"
+          required
+          minLength={LIMITS.eventTitle.min}
+          maxLength={LIMITS.eventTitle.max}
+          placeholder="Beginner's wheel-throwing pottery"
+          className={inputCls}
+        />
       </div>
       <div>
         <label className={labelCls}>Category</label>
@@ -160,46 +175,95 @@ export function EventForm() {
 
       <div>
         <label className={labelCls}>Description</label>
-        <textarea name="description" rows={4} placeholder="What will attendees do and take away?" className={inputCls} />
+        <textarea
+          name="description"
+          rows={4}
+          maxLength={LIMITS.eventDescription.max}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          placeholder="What will attendees do and take away?"
+          className={inputCls}
+        />
+        <p className="mt-1 text-right text-xs text-muted">
+          {description.length}/{LIMITS.eventDescription.max}
+        </p>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Starts (IST)</label>
-          <input type="datetime-local" name="starts_at" required className={inputCls} />
+          <input
+            type="datetime-local"
+            name="starts_at"
+            required
+            min={nowLocal()}
+            className={inputCls}
+          />
         </div>
         <div>
           <label className={labelCls}>Ends (optional)</label>
-          <input type="datetime-local" name="ends_at" className={inputCls} />
+          <input
+            type="datetime-local"
+            name="ends_at"
+            min={nowLocal()}
+            className={inputCls}
+          />
         </div>
       </div>
 
       <div>
         <label className={labelCls}>Venue name</label>
-        <input name="venue_name" placeholder="The Clay Studio, Kothrud" className={inputCls} />
+        <input
+          name="venue_name"
+          maxLength={LIMITS.venueName.max}
+          placeholder="The Clay Studio, Kothrud"
+          className={inputCls}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Google Maps link</label>
-          <input name="maps_url" inputMode="url" placeholder="https://maps.app.goo.gl/…" className={inputCls} />
+          <input
+            name="maps_url"
+            inputMode="url"
+            maxLength={LIMITS.url.max}
+            placeholder="https://maps.app.goo.gl/…"
+            className={inputCls}
+          />
         </div>
         <div>
           <label className={labelCls}>Landmark</label>
-          <input name="landmark" placeholder="Near Mhatre bridge" className={inputCls} />
+          <input
+            name="landmark"
+            maxLength={LIMITS.landmark.max}
+            placeholder="Near Mhatre bridge"
+            className={inputCls}
+          />
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Capacity</label>
-          <input type="number" name="capacity" required min={1} step={1} placeholder="15" className={inputCls} />
+          <input
+            type="number"
+            name="capacity"
+            required
+            min={LIMITS.capacity.min}
+            max={LIMITS.capacity.max}
+            step={1}
+            placeholder="15"
+            className={inputCls}
+          />
         </div>
         <div>
           <label className={labelCls}>Ticket price (₹)</label>
           <input
             type="number"
             name="price"
-            min={0}
+            required={!isFree}
+            min={LIMITS.price.min}
+            max={LIMITS.price.max}
             step={1}
             disabled={isFree}
             placeholder="800"
@@ -238,25 +302,53 @@ export function EventForm() {
 
       <div>
         <label className={labelCls}>What to bring (optional)</label>
-        <input name="what_to_bring" placeholder="An apron and a water bottle" className={inputCls} />
+        <input
+          name="what_to_bring"
+          maxLength={LIMITS.whatToBring.max}
+          placeholder="An apron and a water bottle"
+          className={inputCls}
+        />
       </div>
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className={labelCls}>Languages</label>
-          <input name="languages" placeholder="English, Marathi" className={inputCls} />
+          <input
+            name="languages"
+            maxLength={200}
+            placeholder="English, Marathi"
+            className={inputCls}
+          />
         </div>
         <div>
           <label className={labelCls}>Age suitability</label>
-          <input name="age_suitability" placeholder="16+" className={inputCls} />
+          <input
+            name="age_suitability"
+            maxLength={LIMITS.ageSuitability.max}
+            placeholder="16+"
+            className={inputCls}
+          />
         </div>
       </div>
       <div>
         <label className={labelCls}>Tags (comma-separated)</label>
-        <input name="tags" placeholder="beginner, hands-on, weekend" className={inputCls} />
+        <input
+          name="tags"
+          maxLength={200}
+          placeholder="beginner, hands-on, weekend"
+          className={inputCls}
+        />
+        <p className="mt-1 text-xs text-muted">
+          Up to {LIMITS.tags.maxCount} tags.
+        </p>
       </div>
       <div>
         <label className={labelCls}>Cancellation policy (optional)</label>
-        <input name="cancellation_policy" placeholder="Full refund up to 24h before" className={inputCls} />
+        <input
+          name="cancellation_policy"
+          maxLength={LIMITS.cancellationPolicy.max}
+          placeholder="Full refund up to 24h before"
+          className={inputCls}
+        />
       </div>
 
       {errors.length > 0 && (

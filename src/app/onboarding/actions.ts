@@ -10,8 +10,8 @@ export async function saveProfile(
   _prev: OnboardingState,
   formData: FormData,
 ): Promise<OnboardingState> {
-  const name = String(formData.get("name") ?? "").trim();
-  const city = String(formData.get("city") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 100);
+  const city = String(formData.get("city") ?? "").trim().slice(0, 100);
 
   if (name.length < 2) return { error: "Please enter your name." };
 
