@@ -1,8 +1,16 @@
 # Aikyam — project guide for Claude
 
+> **👉 Read [`docs/STATUS.md`](docs/STATUS.md) first** — current state, pending
+> migrations, open bugs, and what to build next. This file is conventions only.
+
 Aikyam is a **mobile-first PWA** and the **organizer's platform** for small,
 hyperlocal cultural events (~10–50 attendees) in Pune, India. Full spec:
 [`docs/JAD.md`](docs/JAD.md). Read it before adding scope.
+
+**Circles** (`/circles`) layers invitation-led communities on top: a circle's
+gatherings are ordinary events (`events.circle_id`), and member reputation is
+computed from **QR check-ins**, so attendance is verified rather than
+self-declared. See `src/lib/circles.ts`.
 
 **Golden rule for any feature:** does this make on-platform strictly better than
 "WhatsApp + GPay"? If not, it's not Phase 1.
@@ -23,6 +31,13 @@ hyperlocal cultural events (~10–50 attendees) in Pune, India. Full spec:
 - **RLS is on for every table.** Reads run as the user; privileged / money-moving writes go through
   server routes using the service-role client (`src/lib/supabase/admin.ts`), which bypasses RLS.
 - **Server-side authz on every mutation** — UI hiding is not authorization.
+- **Theming:** colours come from CSS variables declared in plain `@theme`
+  (never `@theme inline`, which bakes values in and can't be re-themed).
+  Use `text-onaccent` for text on a gold surface, never `text-ink`.
+- **Layout:** `body` is a flex column — a page-root element with `mx-auto`
+  needs `w-full`, or it sizes to content and blows past the viewport on mobile.
+- **Validation** lives in `src/lib/validation.ts` and is shared by forms and
+  APIs so client hints and server rules can't drift.
 - Supabase clients: `client.ts` (browser), `server.ts` (RSC / route handlers), `admin.ts`
   (service role, server-only — never import from client code).
 
