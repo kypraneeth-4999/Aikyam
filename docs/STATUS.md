@@ -8,81 +8,72 @@ _Last updated: 1 Aug 2026_
 
 ## 🔴 Do these first
 
-### 1. Apply the pending migration — Circles is dead until you do
-Supabase → **SQL Editor → New query** → paste
-[`supabase/migrations/20260801120000_circles.sql`](../supabase/migrations/20260801120000_circles.sql) → **Run**.
+### 1. Delete the duplicate Vercel project
+Two Vercel projects deploy from this repo, which doubles builds and makes "is it
+live?" ambiguous. **Keep `aikyam-7gzf`** — it is the one Supabase is configured
+for. The `aikyam` project (`aikyam-umber.vercel.app`) is not on Supabase's
+redirect allowlist, so sign-in is broken there by design.
 
-All earlier migrations (through `20260728120000_location_trust.sql`) are already applied.
-**Confirmed still pending on 1 Aug** — `circles`, `circle_members` and
-`circle_invites` all return `404` from PostgREST.
+Vercel → the **`aikyam`** project → **Settings → General** → bottom of the page →
+**Delete Project** → type the project name to confirm.
 
-⚠️ It fails *silently*, not loudly: `/circles` renders a cheerful
-"No circles yet" empty state because the query error is discarded. Don't read
-that as "Circles works". Verify with:
+Afterwards, `aikyam-umber.vercel.app` stops resolving. Nothing should point at
+it — `NEXT_PUBLIC_SITE_URL`, Supabase URL Configuration, the Razorpay webhook and
+the GitHub `SITE_URL` secret should all name `aikyam-7gzf.vercel.app`.
+
+---
+
+## ✅ Closed on 1 Aug 2026
+
+### Google sign-in — FIXED
+Two faults stacked, which is why it kept looking half-mended:
+
+**Fault A — the button did nothing.** `NEXT_PUBLIC_*` values are inlined into the
+browser bundle at *build* time. The live bundle had none, so
+`createBrowserClient(undefined, undefined)` threw inside the click handler: no
+redirect, no cookie, no error. Fixed by setting the vars and rebuilding.
+
+**Fault B — sign-in landed on `aikyam-unity.netlify.app/?code=…`.** That is
+Supabase's **Site URL fallback**: GoTrue validates `redirect_to` against the
+Redirect URLs allowlist and, when it doesn't match, *silently discards it* and
+sends the auth code to the Site URL — which was still Netlify. Fixed in
+Supabase → Authentication → URL Configuration.
+
+Verified end-to-end, and the allowlist is confirmed from outside with:
+
+```bash
+curl -sS -o /dev/null -w "%{redirect_url}\n" "$NEXT_PUBLIC_SUPABASE_URL/auth/v1/verify?token=invalid-probe&type=magiclink&redirect_to=<origin>/auth/callback" -H "apikey: $NEXT_PUBLIC_SUPABASE_ANON_KEY"
+```
+
+Echoes the origin back = allowlisted. Returns the Site URL = not allowlisted.
+Omit `redirect_to` entirely and it reveals the current Site URL.
+
+Ruled out with evidence — don't re-investigate:
+- `handle_new_user()` trigger — 11 `auth.users` rows, 11 `public.users` rows, 1:1.
+- Supabase → Google handoff — `302` to `accounts.google.com` from every origin.
+- The proxy's CSRF check — only guards mutating `/api/*`.
+
+**Code hardening shipped with it**, so this class of failure is never silent
+again: `src/lib/supabase/client.ts` throws naming the missing variable, the
+`/login` handlers catch and display it, and `/auth/callback` forwards Supabase's
+real error instead of a bare `?error=oauth`.
+
+### Circles migration — APPLIED
+`circles`, `circle_members`, `circle_endorsements` and `events.circle_id` all
+confirmed present.
+
+⚠️ Note for next time: it would have failed *silently*. `/circles` renders a
+cheerful "No circles yet" empty state when the tables are missing, because the
+query error is discarded. Check the tables, don't trust the page:
 
 ```bash
 curl -sS -o /dev/null -w "%{http_code}\n" "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/circles?select=id&limit=1" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
 ```
 
-`200` = applied, `404` = not.
-
-### 2. Google sign-in — one dashboard setting left, in Supabase
-**Nothing left to change in code.** This was two separate faults stacked; the
-first is fixed, the second is a Supabase setting only you can change.
-
-**Fault A — dead button (FIXED).** `NEXT_PUBLIC_*` values are inlined into the
-browser bundle at *build* time. The live Vercel bundle had none, so
-`createBrowserClient(undefined, undefined)` threw inside the click handler and
-*Continue with Google* did nothing at all. Fixed by setting the vars and
-rebuilding — confirmed: the anon key is now in `aikyam-7gzf.vercel.app`'s bundle.
-
-**Fault B — lands back on Netlify (OPEN).** After Google you end up at
-`https://aikyam-unity.netlify.app/?code=…`. That is Supabase's **Site URL
-fallback**: GoTrue validates `redirect_to` against the Redirect URLs allowlist
-and, when it doesn't match, *silently discards it* and sends the auth code to the
-Site URL. So Supabase still has the Netlify URL configured.
-
-**Fix — Supabase → Authentication → URL Configuration:**
-1. **Site URL** → your Vercel production URL
-2. **Redirect URLs** → add `https://<your-app>.vercel.app/**`
-   (and keep `http://localhost:3000/**` for local dev)
-3. Remove the `aikyam-unity.netlify.app` entries
-
-The symptom to expect when it's right: you land on **our** `/auth/callback`, then
-`/onboarding` — never on a bare `/?code=…`.
-
-Ruled out with evidence, so don't re-investigate these:
-- The `handle_new_user()` trigger — 11 `auth.users` rows, 11 `public.users` rows,
-  exact 1:1; latest Google signup succeeded 30 Jul.
-- Supabase → Google handoff — `302` to `accounts.google.com` from every origin
-  tested, `redirect_to` preserved at the authorize step.
-- The proxy's CSRF check — it only guards mutating `/api/*`.
-- The auth code itself — unchanged and working on localhost throughout.
-
-**Code hardening shipped alongside**, so this class of failure is never silent
-again: `src/lib/supabase/client.ts` throws naming the missing variable, the
-`/login` handlers catch and display it, and `/auth/callback` forwards Supabase's
-real error instead of a bare `?error=oauth`.
-
-### 3. Two Vercel projects are deploying from this repo — delete one
-Both auto-deploy from `master`, which doubles builds and makes "is it live?"
-ambiguous:
-
-| URL | Project | State |
-|---|---|---|
-| `aikyam-7gzf.vercel.app` | `aikyam-7gzf` (newer) | env vars set, anon key in bundle ✅ |
-| `aikyam-umber.vercel.app` | `aikyam` (original) | anon key still missing ❌ |
-
-Pick one, delete the other in Vercel → Settings → General → Delete Project, then
-make sure the survivor's URL is the one in `NEXT_PUBLIC_SITE_URL`, Supabase URL
-Configuration, the Razorpay webhook, and the GitHub `SITE_URL` secret. See
-[`HOSTING.md`](HOSTING.md).
-
-**Netlify is gone from the codebase** as of 1 Aug — `netlify.toml`, the scheduled
-function, and the `npm run deploy` / `[deploy]` build gate were all removed.
-Every push to `master` now deploys to production, with no gate. The old
-`aikyam-unity.netlify.app` site may still be up in Netlify's dashboard; delete it
-there.
+### Netlify — REMOVED
+`netlify.toml`, the scheduled function and the `npm run deploy` / `[deploy]`
+build gate are gone from the repo, and the `aikyam-unity` site is deleted.
+**Every push to `master` now deploys to production, with no gate.**
 
 ---
 
@@ -92,7 +83,7 @@ All eight JAD slices, plus features added since.
 
 | Area | State |
 |---|---|
-| Auth — Google + phone OTP UI | Google working (see bug above); phone OTP needs an SMS provider |
+| Auth — Google + phone OTP UI | Google verified working on Vercel 1 Aug; phone OTP needs an SMS provider |
 | Organiser profiles, `@handle` + change-with-redirect | done |
 | Event creation — **7-step wizard** | done |
 | Public event page, discovery homepage, categories | done |
@@ -105,7 +96,7 @@ All eight JAD slices, plus features added since.
 | Settings, notification prefs, delete account | done |
 | Security pass — CSRF, moderation hook, rate limiting | done |
 | **Light/dark theme** | done, WCAG AA |
-| **Circles** (invitation-led communities) | built, **needs migration + testing** |
+| **Circles** (invitation-led communities) | built, migration applied, **untested end-to-end** |
 
 **Live:** https://aikyam-7gzf.vercel.app *(see §3 — a second Vercel project,
 `aikyam-umber.vercel.app`, is also deploying from `master`; delete one)*
