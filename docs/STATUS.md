@@ -26,50 +26,67 @@ curl -sS -o /dev/null -w "%{http_code}\n" "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/cir
 
 `200` = applied, `404` = not.
 
-### 2. Open bug — Google login reported not working
-**Still open, but now diagnosable.** The reason it stayed undiagnosed: a failed
-OAuth round-trip bounced back to `/login?error=oauth` and the login page *never
-read that parameter*, so the user saw a blank form and no message.
+### 2. Google sign-in broken on Vercel — set the build-time env vars
+**Root cause found 1 Aug. It is a Vercel configuration problem, not an auth bug.**
 
-**Fixed 1 Aug:** `src/app/auth/callback/route.ts` now forwards the real reason
-(Supabase's `error_description`, or the `exchangeCodeForSession` message) and
-logs it server-side; `/login` renders it. Retry the sign-in and **the failure
-will now tell you what it is.**
+`NEXT_PUBLIC_*` variables are **inlined into the browser bundle when `next build`
+runs**. On the Vercel deployment they are missing from the built JS, so
+`createBrowserClient(undefined, undefined)` throws inside the click handler and
+*Continue with Google* silently does nothing — no redirect, no cookie, no error.
 
-Already verified working locally, so these are *not* the cause:
-- Supabase → Google handoff: `/auth/v1/authorize?provider=google` returns `302`
-  to `accounts.google.com`, and `redirect_to=http://localhost:3000/auth/callback`
-  is accepted unrewritten — so localhost **is** in the allowed Redirect URLs.
-- Clicking *Continue with Google* on `/login` does redirect to Google, and the
-  PKCE `sb-…-auth-token-code-verifier` cookie is set on `localhost:3000` first.
-- The proxy's CSRF check only guards **mutating `/api/*`** requests, so it never
-  touches `/auth/callback`.
+Evidence (1 Aug):
 
-So the failure is after Google returns. Likely candidates, in order:
-1. Whichever environment was actually tested — the live Netlify site is frozen
-   on an old build (see §3), so a failure *there* may be unrelated to this code.
-2. `handle_new_user()` trigger on `auth.users` failing on first Google sign-up
-   (shows as *"Database error saving new user"*).
-3. A `redirect_to` origin not in Supabase's Redirect URLs for the **deployed**
-   origin (localhost is confirmed fine).
+| | Netlify (works) | Vercel (broken) |
+|---|---|---|
+| Supabase ref in client chunks | present | **absent from all 11** |
+| Click *Continue with Google* | → `accounts.google.com`, PKCE cookie set | nothing at all |
+| Server routes (`/circles`) | 200 | 200 — so **server** env is set |
 
-Reproduce the Supabase handoff check with:
-```bash
-curl -sSi "https://wfdzttafjwebhckfxsth.supabase.co/auth/v1/authorize?provider=google&redirect_to=http://localhost:3000/auth/callback" -H "apikey: <NEXT_PUBLIC_SUPABASE_ANON_KEY>" | head -5
-```
+Server-side works, client-side doesn't ⇒ the vars exist in Vercel but were not
+present for the **build** that is live. Almost always a redeploy that reused the
+build cache.
 
-### 3. Hosting — production deploys are paused
-Netlify free build credits ran out. **Everything since ~26 Jul is committed but
-not live**, including the mobile fixes, trust/location features, the event
-wizard, theming and Circles.
+**Fix (Vercel dashboard — cannot be done from code):**
+1. **Settings → Environment Variables** — confirm `NEXT_PUBLIC_SUPABASE_URL` and
+   `NEXT_PUBLIC_SUPABASE_ANON_KEY` exist and are ticked for **Production**.
+2. **Deployments → ⋯ → Redeploy**, and **untick "Use existing Build Cache"**.
+   Adding a variable alone does nothing — the bundle must be rebuilt.
+3. Verify without signing in:
+   ```bash
+   curl -sS https://aikyam-umber.vercel.app/login | grep -o '/_next/static/chunks/[^"]*\.js' | sort -u |
+     while read -r f; do curl -sS "https://aikyam-umber.vercel.app$f" | grep -ql wfdzttafjwebhckfxsth && echo "OK $f"; done
+   ```
+   Any `OK` line means the key is in the bundle and Google sign-in will work.
 
-Two things are already in place:
-- Builds now only run when a commit message contains **`[deploy]`**
-  (`npm run deploy` makes an empty tagged commit and pushes), so ordinary pushes
-  no longer burn credits.
-- A **Vercel migration** is prepared — see
-  [`VERCEL-MIGRATION.md`](VERCEL-MIGRATION.md). Nothing in the app is
-  host-specific; it's env vars plus three URLs.
+Also confirm **Supabase → Authentication → URL Configuration** lists the Vercel
+origin (Site URL + `https://aikyam-umber.vercel.app/**` in Redirect URLs), per
+[`VERCEL-MIGRATION.md`](VERCEL-MIGRATION.md) step 3.2.
+
+Ruled out, so don't re-investigate these:
+- The `handle_new_user()` trigger — 11 `auth.users` rows, 11 `public.users`
+  rows, exact 1:1; latest Google signup succeeded 30 Jul.
+- Supabase → Google handoff — `302` to `accounts.google.com` from localhost,
+  Netlify **and** Vercel, with `redirect_to` preserved.
+- The proxy's CSRF check — it only guards mutating `/api/*`.
+- The auth code itself — unchanged and working on localhost.
+
+**Code fixes shipped alongside** so this class of failure is never silent again:
+`src/lib/supabase/client.ts` throws naming the missing variable, the `/login`
+handlers catch and display it, and `/auth/callback` forwards Supabase's real
+error instead of a bare `?error=oauth`.
+
+### 3. Hosting — now on Vercel
+**Live: https://aikyam-umber.vercel.app** (Vercel project `ykp-claide-code/aikyam`,
+deploying from `master`).
+
+Netlify (https://aikyam-unity.netlify.app) is still up but frozen on a pre-26-Jul
+build — treat it as a fallback only, and don't use it to judge whether something
+is broken. `netlify.toml` and its `[deploy]` build gate remain in place.
+
+Remaining migration follow-ups from [`VERCEL-MIGRATION.md`](VERCEL-MIGRATION.md):
+`NEXT_PUBLIC_SITE_URL` must be the Vercel URL, the Razorpay webhook must point at
+`…vercel.app/api/webhooks/razorpay`, and hourly reminders run from
+`.github/workflows/reminders.yml` (Vercel Hobby cron is daily only).
 
 ---
 

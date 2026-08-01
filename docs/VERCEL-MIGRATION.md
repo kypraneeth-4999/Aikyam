@@ -48,6 +48,14 @@ notepad "C:\Users\Praneeth Krishna\dev\Aikyam\.env.local"
 
 Then **Deploy**, and note your URL (e.g. `https://aikyam.vercel.app`).
 
+> ⚠️ **`NEXT_PUBLIC_*` variables are baked into the browser bundle at build
+> time, not read at runtime.** Adding one to the dashboard changes nothing until
+> a build runs *with it present* — and a redeploy that reuses the build cache
+> can keep serving the old bundle. This is what broke Google sign-in on 1 Aug:
+> the server had the keys, the client JS didn't, so *Continue with Google*
+> silently did nothing. If you add or change any `NEXT_PUBLIC_*` value,
+> **Redeploy with "Use existing Build Cache" unticked.**
+
 ## 3. Point everything at the new URL
 
 Three places still reference the Netlify domain:
