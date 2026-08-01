@@ -1,0 +1,36 @@
+name: Event reminders
+
+# Hourly trigger for the 24h / 3h reminder job.
+#
+# Why here and not the host's scheduler: Vercel's Hobby plan only runs cron once
+# per day, which is too coarse for a 3-hour reminder. GitHub Actions gives us a
+# free hourly schedule and works no matter where the app is hosted.
+#
+# Sending is idempotent (notification_log has a unique constraint per
+# booking+kind+channel), so overlapping runs can never double-message anyone.
+#
+# Required repository secrets:
+#   SITE_URL     e.g. https://aikyam.vercel.app   (no trailing slash)
+#   CRON_SECRET  the same value as the app's CRON_SECRET env var
+
+on:
+  schedule:
+    - cron: "0 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  send-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger reminder job
+        run: |
+          status=$(curl -sS -o response.json -w "%{http_code}" \
+            -X POST "${{ secrets.SITE_URL }}/api/cron/reminders" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}")
+          echo "HTTP $status"
+          cat response.json
+          echo
+          if [ "$status" != "200" ]; then
+            echo "::error::Reminder job failed with HTTP $status"
+            exit 1
+          fi

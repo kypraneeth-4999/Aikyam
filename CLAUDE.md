@@ -49,7 +49,16 @@ Webhook-verified payments · idempotency keys · signed single-use QR tickets ·
 OTP rate limiting · server-side RBAC · PII minimization · atomic capacity decrement ·
 signed expiring URLs for private exports · append-only AuditLog on all money moves.
 
-## Deploying (deliberate, not on every push)
+## Hosting
+
+Migrating to **Vercel** (native Next.js, no plugin) — see
+[`docs/VERCEL-MIGRATION.md`](docs/VERCEL-MIGRATION.md). `netlify.toml` is kept so
+Netlify still works as a fallback. Nothing in the app code is host-specific.
+
+Reminders are triggered hourly by `.github/workflows/reminders.yml` (Vercel's
+Hobby cron only runs daily). Sends are idempotent, so overlapping triggers are safe.
+
+## Deploying on Netlify (deliberate, not on every push)
 
 Netlify's free tier includes a limited amount of build time per cycle, and every
 push used to trigger a full build. `netlify.toml` now uses an `ignore` command so
