@@ -8,36 +8,55 @@ _Last updated: 1 Aug 2026_
 
 ## 🔴 Do these first
 
-### 1. Apply the pending migration — Circles pages will error until you do
+### 1. Apply the pending migration — Circles is dead until you do
 Supabase → **SQL Editor → New query** → paste
 [`supabase/migrations/20260801120000_circles.sql`](../supabase/migrations/20260801120000_circles.sql) → **Run**.
 
 All earlier migrations (through `20260728120000_location_trust.sql`) are already applied.
+**Confirmed still pending on 1 Aug** — `circles`, `circle_members` and
+`circle_invites` all return `404` from PostgREST.
+
+⚠️ It fails *silently*, not loudly: `/circles` renders a cheerful
+"No circles yet" empty state because the query error is discarded. Don't read
+that as "Circles works". Verify with:
+
+```bash
+curl -sS -o /dev/null -w "%{http_code}\n" "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/circles?select=id&limit=1" -H "apikey: $SUPABASE_SERVICE_ROLE_KEY" -H "Authorization: Bearer $SUPABASE_SERVICE_ROLE_KEY"
+```
+
+`200` = applied, `404` = not.
 
 ### 2. Open bug — Google login reported not working
-**Not yet diagnosed.** Reported 1 Aug; investigation was interrupted before any
-root cause was found. Nothing is known to be wrong with the auth code — it was
-working on 17 Jul and the recent changes near it were cosmetic
-(`text-ink` → `text-onaccent`) plus an added `<head>` block in
-`src/app/layout.tsx` for the theme script.
+**Still open, but now diagnosable.** The reason it stayed undiagnosed: a failed
+OAuth round-trip bounced back to `/login?error=oauth` and the login page *never
+read that parameter*, so the user saw a blank form and no message.
 
-Check in this order:
-1. **Which environment?** The live Netlify site is frozen on an old build
-   (see §3), so a failure there may be unrelated to current code.
-2. **Supabase → Authentication → URL Configuration** — Site URL and
-   **Redirect URLs** must include the origin you're testing
-   (`http://localhost:3000/**` for local).
-3. **Browser console + network** on `/login` when clicking *Continue with Google*
-   — does it redirect to `accounts.google.com` at all?
-4. Confirm Supabase still hands off correctly:
-   ```bash
-   curl -sSi "https://wfdzttafjwebhckfxsth.supabase.co/auth/v1/authorize?provider=google&redirect_to=http://localhost:3000/auth/callback" -H "apikey: <NEXT_PUBLIC_SUPABASE_ANON_KEY>" | head -5
-   ```
-   A `302` to `accounts.google.com` means Supabase/Google config is fine and the
-   problem is on our side (`/auth/callback`, cookies, or the proxy).
-5. `src/app/auth/callback/route.ts` exchanges the code for a session;
-   `src/proxy.ts` refreshes it. The proxy's CSRF check only guards
-   **mutating `/api/*`** requests, so it should not affect this — verify.
+**Fixed 1 Aug:** `src/app/auth/callback/route.ts` now forwards the real reason
+(Supabase's `error_description`, or the `exchangeCodeForSession` message) and
+logs it server-side; `/login` renders it. Retry the sign-in and **the failure
+will now tell you what it is.**
+
+Already verified working locally, so these are *not* the cause:
+- Supabase → Google handoff: `/auth/v1/authorize?provider=google` returns `302`
+  to `accounts.google.com`, and `redirect_to=http://localhost:3000/auth/callback`
+  is accepted unrewritten — so localhost **is** in the allowed Redirect URLs.
+- Clicking *Continue with Google* on `/login` does redirect to Google, and the
+  PKCE `sb-…-auth-token-code-verifier` cookie is set on `localhost:3000` first.
+- The proxy's CSRF check only guards **mutating `/api/*`** requests, so it never
+  touches `/auth/callback`.
+
+So the failure is after Google returns. Likely candidates, in order:
+1. Whichever environment was actually tested — the live Netlify site is frozen
+   on an old build (see §3), so a failure *there* may be unrelated to this code.
+2. `handle_new_user()` trigger on `auth.users` failing on first Google sign-up
+   (shows as *"Database error saving new user"*).
+3. A `redirect_to` origin not in Supabase's Redirect URLs for the **deployed**
+   origin (localhost is confirmed fine).
+
+Reproduce the Supabase handoff check with:
+```bash
+curl -sSi "https://wfdzttafjwebhckfxsth.supabase.co/auth/v1/authorize?provider=google&redirect_to=http://localhost:3000/auth/callback" -H "apikey: <NEXT_PUBLIC_SUPABASE_ANON_KEY>" | head -5
+```
 
 ### 3. Hosting — production deploys are paused
 Netlify free build credits ran out. **Everything since ~26 Jul is committed but
@@ -152,3 +171,7 @@ TypeScript checks run with type stripping:
   tested on a deployed URL**.
 - After editing CSS, let the stylesheet reload before measuring computed styles
   — early reads give false failures.
+- **Supabase query errors are widely swallowed** (`const { data } = await …`
+  with no `error` check), so a missing table or an RLS denial looks like an
+  empty list. When a page renders "nothing here", check the table exists before
+  believing it.
