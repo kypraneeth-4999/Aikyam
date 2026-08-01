@@ -203,7 +203,11 @@ export default async function Home({
 
         {/* ORGANISER CTA */}
         <section className="mt-16 overflow-hidden rounded-2xl">
+          {/* The gradient is fixed dark in both themes, so the panel opts into
+              the dark palette — otherwise light mode paints near-black text on
+              it. See the [data-theme="dark"] block in globals.css. */}
           <div
+            data-theme="dark"
             className="relative p-10 md:p-14"
             style={{
               background:

@@ -64,8 +64,30 @@
   --color-foreground: #1c1626;
 }
 
-:root[data-theme="dark"] {
+/* The dark palette, re-declared so it can be scoped to a *subtree*, not just
+   :root. A panel with a permanently dark background (the organiser CTA's fixed
+   gradient) sets data-theme="dark" on itself and every token inside it —
+   cream, gold, onaccent — resolves to its dark value again. Without this, such
+   a panel renders near-black text on a near-black gradient in light mode. */
+[data-theme="dark"] {
   color-scheme: dark;
+
+  --color-ink: #0b0914;
+  --color-surface: #14102a;
+  --color-surface2: #1e1a35;
+  --color-border: #2a2040;
+
+  --color-cream: #f5edd6;
+  --color-parchment: #e8d9b8;
+  --color-muted: #9d92ad;
+
+  --color-gold: #f4a01c;
+  --color-saffron: #ff6b00;
+  --color-crimson: #e8334a;
+  --color-onaccent: #0b0914;
+
+  --color-background: #0b0914;
+  --color-foreground: #f5edd6;
 }
 
 /* Follow the OS until the user picks a theme explicitly (which sets
