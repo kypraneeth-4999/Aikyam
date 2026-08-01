@@ -215,7 +215,7 @@ export function BookingForm({
         type="button"
         onClick={pay}
         disabled={busy}
-        className="w-full rounded-xl bg-gold py-3.5 text-sm font-semibold text-ink transition-all hover:bg-saffron hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
+        className="w-full rounded-xl bg-gold py-3.5 text-sm font-semibold text-onaccent transition-all hover:bg-saffron hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50"
       >
         {isFree
           ? busy

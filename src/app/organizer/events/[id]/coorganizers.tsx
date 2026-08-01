@@ -150,7 +150,7 @@ export function CoOrganizers({
             <button
               onClick={() => handle && add({ handle })}
               disabled={busy || !handle}
-              className="rounded-xl bg-gold px-3 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
+              className="rounded-xl bg-gold px-3 py-2 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-50"
             >
               Invite
             </button>

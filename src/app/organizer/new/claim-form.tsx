@@ -140,7 +140,7 @@ export function ClaimForm({
       <button
         type="submit"
         disabled={!canSubmit}
-        className="w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
+        className="w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-50"
       >
         {submitting ? "Creating…" : "Create my page"}
       </button>

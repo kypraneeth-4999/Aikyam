@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { AccountSettings } from "./account-settings";
 import { OrganizerSettings } from "./organizer-settings";
 import { DangerZone } from "./danger-zone";
+import { ThemeSetting } from "@/components/theme";
 
 export const metadata = { title: "Settings" };
 
@@ -44,6 +45,8 @@ export default async function SettingsPage() {
         whatsappPref={prefs.whatsapp !== false}
       />
 
+      <ThemeSetting />
+
       {org ? (
         <OrganizerSettings
           handle={org.handle}
@@ -59,7 +62,7 @@ export default async function SettingsPage() {
           <p className="text-cream">Want to host events?</p>
           <Link
             href="/organizer/new"
-            className="mt-3 inline-block rounded-full bg-gold px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-saffron"
+            className="mt-3 inline-block rounded-full bg-gold px-4 py-2 text-xs font-semibold text-onaccent transition-colors hover:bg-saffron"
           >
             Become an organiser
           </Link>

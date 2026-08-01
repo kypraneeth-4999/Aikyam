@@ -171,7 +171,7 @@ export function OrganizerSettings({
             <button
               onClick={changeHandle}
               disabled={handleBusy}
-              className="mt-2 rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-ink disabled:opacity-50"
+              className="mt-2 rounded-full bg-gold px-4 py-1.5 text-xs font-semibold text-onaccent disabled:opacity-50"
             >
               {handleBusy ? "Changing…" : "Change handle"}
             </button>
@@ -272,7 +272,7 @@ export function OrganizerSettings({
       <button
         onClick={save}
         disabled={saving || uploading}
-        className="mt-4 w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-60"
+        className="mt-4 w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-60"
       >
         {saving ? "Saving…" : "Save organiser profile"}
       </button>

@@ -1,25 +1,93 @@
 @import "tailwindcss";
 
-/* Aikyam design system — from the Figma "UTSAV" export (docs/design-reference).
-   Fonts are loaded via next/font in layout.tsx and exposed as CSS variables. */
+/* ---------------------------------------------------------------------------
+   Aikyam palette.
+
+   Both themes are deliberately small — a background, two surfaces, a border,
+   two text weights and one accent.
+
+   How theming works: plain `@theme` (NOT `@theme inline`) makes Tailwind emit
+   real `--color-*` variables and have utilities reference them, so overriding
+   those variables on `:root[data-theme="light"]` re-themes every existing
+   `bg-surface` / `text-cream` / `text-gold` class with no component changes.
+   `@theme inline` would bake the resolved value into each utility instead,
+   which cannot be re-themed at runtime.
+
+   `onaccent` is the text colour used *on* a gold surface. It flips per theme
+   (dark text on bright gold; white on the deeper light-mode gold) so buttons
+   stay readable either way.
+--------------------------------------------------------------------------- */
+
 @theme {
   --font-display: var(--font-abril);
   --font-sans: var(--font-poppins);
 
-  --color-ink: #0b0914;
-  --color-surface: #14102a;
-  --color-surface2: #1e1a35;
-  --color-gold: #f4a01c;
-  --color-saffron: #ff6b00;
-  --color-crimson: #e8334a;
-  --color-cream: #f5edd6;
-  --color-parchment: #e8d9b8;
-  --color-muted: #7a6e8a;
+  /* Dark is the default. */
+  --color-ink: #0b0914; /* page background */
+  --color-surface: #14102a; /* cards */
+  --color-surface2: #1e1a35; /* inputs, insets */
   --color-border: #2a2040;
 
-  /* Back-compat aliases so existing bg-background/bg-foreground utilities read dark. */
+  --color-cream: #f5edd6; /* primary text */
+  --color-parchment: #e8d9b8;
+  --color-muted: #9d92ad; /* secondary text */
+
+  --color-gold: #f4a01c; /* accent */
+  --color-saffron: #ff6b00; /* accent hover */
+  --color-crimson: #e8334a; /* destructive */
+  --color-onaccent: #0b0914; /* text on a gold surface */
+
+  /* Back-compat aliases for utilities written before theming. */
   --color-background: #0b0914;
   --color-foreground: #f5edd6;
+}
+
+/* Warm ivory light theme — same four roles, no extra colours. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --color-ink: #fbf7ee;
+  --color-surface: #ffffff;
+  --color-surface2: #f3ede0;
+  --color-border: #e3d9c6;
+
+  --color-cream: #1c1626; /* deep aubergine-black text */
+  --color-parchment: #3b3348;
+  --color-muted: #635b70;
+
+  --color-gold: #9a5f08; /* deepened so gold text passes AA on ivory */
+  --color-saffron: #b3400a;
+  --color-crimson: #a81b1b;
+  --color-onaccent: #ffffff; /* white on the deeper gold */
+
+  --color-background: #fbf7ee;
+  --color-foreground: #1c1626;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+/* Follow the OS until the user picks a theme explicitly (which sets
+   data-theme on <html> and wins via the selector above). */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+
+    --color-ink: #fbf7ee;
+    --color-surface: #ffffff;
+    --color-surface2: #f3ede0;
+    --color-border: #e3d9c6;
+    --color-cream: #1c1626;
+    --color-parchment: #3b3348;
+    --color-muted: #635b70;
+    --color-gold: #9a5f08;
+    --color-saffron: #b3400a;
+    --color-crimson: #a81b1b;
+    --color-onaccent: #ffffff;
+    --color-background: #fbf7ee;
+    --color-foreground: #1c1626;
+  }
 }
 
 html,
@@ -29,6 +97,14 @@ body {
   font-family: var(--font-poppins), system-ui, sans-serif;
   /* Mobile-first: never allow sideways scroll on a phone. */
   overflow-x: hidden;
+}
+
+/* Hide scrollbars (matches the reference design). */
+* {
+  scrollbar-width: none;
+}
+*::-webkit-scrollbar {
+  display: none;
 }
 
 /* Keep iOS from zooming when a form field is focused (needs >=16px). */
@@ -53,12 +129,4 @@ textarea {
   a.rounded-xl {
     min-height: 44px;
   }
-}
-
-/* Hide scrollbars (matches the reference design). */
-* {
-  scrollbar-width: none;
-}
-*::-webkit-scrollbar {
-  display: none;
 }

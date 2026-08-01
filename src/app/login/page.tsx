@@ -14,7 +14,7 @@ function toE164(raw: string): string {
 const input =
   "w-full rounded-xl border border-border bg-surface2 px-3 py-2.5 text-sm text-cream placeholder:text-muted outline-none focus:border-gold/40 transition-colors";
 const goldBtn =
-  "w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-60";
+  "w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-60";
 
 export default function LoginPage() {
   const router = useRouter();

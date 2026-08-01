@@ -435,7 +435,7 @@ export default async function EventPage({
               {bookable ? (
                 <Link
                   href={`/e/${ev.slug}/book`}
-                  className="block w-full rounded-xl bg-gold py-3.5 text-center text-sm font-semibold text-ink transition-all hover:bg-saffron hover:scale-[1.02] active:scale-[0.98]"
+                  className="block w-full rounded-xl bg-gold py-3.5 text-center text-sm font-semibold text-onaccent transition-all hover:bg-saffron hover:scale-[1.02] active:scale-[0.98]"
                 >
                   {ev.is_free ? "Register free" : "Book tickets"}
                 </Link>
@@ -489,7 +489,7 @@ export default async function EventPage({
           {bookable ? (
             <Link
               href={`/e/${ev.slug}/book`}
-              className="shrink-0 rounded-xl bg-gold px-6 py-3 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+              className="shrink-0 rounded-xl bg-gold px-6 py-3 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
             >
               {ev.is_free ? "Register free" : "Book tickets"}
             </Link>

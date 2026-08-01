@@ -141,7 +141,7 @@ export default async function ManagePage({
           {ev.status !== "cancelled" && (
             <Link
               href={`/organizer/events/${ev.id}/checkin`}
-              className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+              className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
             >
               Check-in
             </Link>

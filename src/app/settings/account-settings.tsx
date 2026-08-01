@@ -160,7 +160,7 @@ export function AccountSettings({
       <button
         onClick={save}
         disabled={saving || name.trim().length < LIMITS.name.min}
-        className="mt-4 w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-60"
+        className="mt-4 w-full rounded-xl bg-gold px-3 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-60"
       >
         {saving ? "Saving…" : "Save account settings"}
       </button>

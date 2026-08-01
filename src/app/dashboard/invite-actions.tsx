@@ -27,7 +27,7 @@ export function InviteActions({ eventId }: { eventId: string }) {
       <button
         onClick={() => respond(true)}
         disabled={busy}
-        className="rounded-full bg-gold px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
+        className="rounded-full bg-gold px-3 py-1 text-xs font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-50"
       >
         Accept
       </button>

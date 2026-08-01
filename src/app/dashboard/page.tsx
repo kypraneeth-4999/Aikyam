@@ -130,7 +130,7 @@ export default async function DashboardPage() {
         <h1 className="font-display text-3xl text-cream">Dashboard</h1>
         <Link
           href="/organizer/events/new"
-          className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+          className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
         >
           Create event
         </Link>

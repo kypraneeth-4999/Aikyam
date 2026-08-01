@@ -242,7 +242,7 @@ export default async function OrganizerProfilePage({
           </p>
           <Link
             href="/organizer/events/new"
-            className="mt-3 inline-block rounded-full bg-gold px-4 py-2 text-xs font-semibold text-ink transition-colors hover:bg-saffron"
+            className="mt-3 inline-block rounded-full bg-gold px-4 py-2 text-xs font-semibold text-onaccent transition-colors hover:bg-saffron"
           >
             Create an event
           </Link>

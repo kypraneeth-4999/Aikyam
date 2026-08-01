@@ -26,7 +26,7 @@ function EventCard({ ev }: { ev: DiscoverEvent }) {
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-ink/60 to-transparent" />
         {ev.is_featured ? (
-          <span className="absolute left-3 top-3 rounded-full bg-gold/90 px-2.5 py-1 text-xs font-semibold text-ink">
+          <span className="absolute left-3 top-3 rounded-full bg-gold/90 px-2.5 py-1 text-xs font-semibold text-onaccent">
             ✦ Featured
           </span>
         ) : ev.is_free ? (
@@ -87,7 +87,7 @@ export default async function Home({
 
   const pillBase =
     "flex items-center gap-1.5 whitespace-nowrap rounded-full px-5 py-2.5 text-sm font-medium transition-all";
-  const pillActive = "bg-gold text-ink shadow-[0_0_20px_rgba(244,160,28,0.35)]";
+  const pillActive = "bg-gold text-onaccent shadow-[0_0_20px_rgba(244,160,28,0.35)]";
   const pillIdle =
     "border border-border bg-surface text-muted hover:border-gold/30 hover:text-cream";
 
@@ -131,7 +131,7 @@ export default async function Home({
               <div className="flex flex-wrap items-center gap-4">
                 <Link
                   href={`/e/${featured.slug}`}
-                  className="rounded-full bg-gold px-7 py-3 font-semibold text-ink transition-all hover:scale-105 hover:bg-saffron active:scale-95"
+                  className="rounded-full bg-gold px-7 py-3 font-semibold text-onaccent transition-all hover:scale-105 hover:bg-saffron active:scale-95"
                 >
                   {featured.is_free
                     ? "Get free pass"
@@ -223,7 +223,7 @@ export default async function Home({
               </p>
               <Link
                 href="/organizer/new"
-                className="rounded-full bg-gold px-6 py-3 text-sm font-semibold text-ink transition-all hover:scale-105 hover:bg-saffron active:scale-95"
+                className="rounded-full bg-gold px-6 py-3 text-sm font-semibold text-onaccent transition-all hover:scale-105 hover:bg-saffron active:scale-95"
               >
                 Become an organiser
               </Link>

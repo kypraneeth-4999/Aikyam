@@ -4,6 +4,7 @@ import "./globals.css";
 import { SITE_URL } from "@/config/app";
 import { SiteHeader } from "@/components/site-header";
 import { SiteFooter } from "@/components/site-footer";
+import { THEME_INIT_SCRIPT } from "@/components/theme";
 
 const abril = Abril_Fatface({
   weight: "400",
@@ -47,7 +48,12 @@ export default function RootLayout({
     <html
       lang="en"
       className={`${abril.variable} ${poppins.variable} h-full antialiased`}
+      suppressHydrationWarning
     >
+      <head>
+        {/* Applies the saved theme before paint — avoids a flash of the wrong colours. */}
+        <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
+      </head>
       <body className="flex min-h-full flex-col bg-ink text-cream">
         <SiteHeader />
         <div className="flex flex-1 flex-col">{children}</div>

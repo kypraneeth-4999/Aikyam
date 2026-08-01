@@ -332,7 +332,7 @@ export function EventForm() {
               }}
               className={`rounded-full px-2.5 py-1 text-xs transition-colors ${
                 i === step
-                  ? "bg-gold text-ink"
+                  ? "bg-gold text-onaccent"
                   : stepValid(i)
                     ? "text-muted hover:text-cream"
                     : "text-crimson/70 hover:text-crimson"
@@ -853,7 +853,7 @@ export function EventForm() {
           <button
             type="button"
             onClick={next}
-            className="flex-1 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+            className="flex-1 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
           >
             Continue
           </button>
@@ -862,7 +862,7 @@ export function EventForm() {
             type="button"
             onClick={() => submit(true)}
             disabled={busy !== null || uploading}
-            className="flex-1 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
+            className="flex-1 rounded-xl bg-gold px-5 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-50"
           >
             {busy === "publish" ? "Publishing…" : "Publish event"}
           </button>

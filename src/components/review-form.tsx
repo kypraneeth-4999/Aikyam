@@ -75,7 +75,7 @@ export function ReviewForm({ bookingId }: { bookingId: string }) {
       <button
         onClick={submit}
         disabled={busy}
-        className="mt-2 rounded-full bg-gold px-3 py-1 text-xs font-semibold text-ink transition-colors hover:bg-saffron disabled:opacity-50"
+        className="mt-2 rounded-full bg-gold px-3 py-1 text-xs font-semibold text-onaccent transition-colors hover:bg-saffron disabled:opacity-50"
       >
         {busy ? "…" : "Submit review"}
       </button>

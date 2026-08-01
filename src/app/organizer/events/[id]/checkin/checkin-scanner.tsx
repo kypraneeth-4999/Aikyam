@@ -126,7 +126,7 @@ export function CheckinScanner({
         {!scanning ? (
           <button
             onClick={start}
-            className="w-full rounded-xl bg-gold py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+            className="w-full rounded-xl bg-gold py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
           >
             Start camera
           </button>
@@ -173,7 +173,7 @@ export function CheckinScanner({
           />
           <button
             onClick={() => verify(manual.trim())}
-            className="rounded-xl bg-gold px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+            className="rounded-xl bg-gold px-4 py-2 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
           >
             Verify
           </button>

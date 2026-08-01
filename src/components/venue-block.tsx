@@ -67,7 +67,7 @@ export function VenueBlock({
                 href={directionsUrl}
                 target="_blank"
                 rel="noopener noreferrer nofollow"
-                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-2.5 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+                className="mt-4 inline-flex items-center gap-2 rounded-xl bg-gold px-4 py-2.5 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
               >
                 ◎ Get directions
               </a>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { ThemeToggle } from "@/components/theme";
 
 export type NavLink = { href: string; label: string };
 
@@ -69,9 +70,11 @@ export function HeaderNav({
           ))}
         </div>
 
+        <ThemeToggle />
+
         <Link
           href={cta.href}
-          className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-ink transition-colors hover:bg-saffron"
+          className="rounded-full bg-gold px-4 py-2 text-sm font-semibold text-onaccent transition-colors hover:bg-saffron"
         >
           {cta.label}
         </Link>
