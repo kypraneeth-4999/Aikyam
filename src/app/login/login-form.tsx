@@ -25,46 +25,71 @@ export function LoginForm({ initialError }: { initialError?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(initialError ?? null);
 
+  /**
+   * createClient() throws when the build is missing its Supabase config, and
+   * the SDK can throw on network failure — without this the button just goes
+   * dead and the user is told nothing.
+   */
+  function show(e: unknown) {
+    setError(e instanceof Error ? e.message : "Something went wrong.");
+  }
+
   async function sendOtp(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({ phone: toE164(phone) });
-    setLoading(false);
-    if (error) setError(error.message);
-    else setOtpSent(true);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOtp({
+        phone: toE164(phone),
+      });
+      if (error) setError(error.message);
+      else setOtpSent(true);
+    } catch (err) {
+      show(err);
+    } finally {
+      setLoading(false);
+    }
   }
 
   async function verifyCode(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const supabase = createClient();
-    const { error } = await supabase.auth.verifyOtp({
-      phone: toE164(phone),
-      token: code,
-      type: "sms",
-    });
-    setLoading(false);
-    if (error) {
-      setError(error.message);
-      return;
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.verifyOtp({
+        phone: toE164(phone),
+        token: code,
+        type: "sms",
+      });
+      if (error) {
+        setError(error.message);
+        return;
+      }
+      router.push("/onboarding");
+      router.refresh();
+    } catch (err) {
+      show(err);
+    } finally {
+      setLoading(false);
     }
-    router.push("/onboarding");
-    router.refresh();
   }
 
   async function signInWithGoogle() {
     setError(null);
-    const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
-      },
-    });
-    if (error) setError(error.message);
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback?next=/onboarding`,
+        },
+      });
+      if (error) setError(error.message);
+    } catch (err) {
+      show(err);
+    }
   }
 
   return (
