@@ -19,8 +19,8 @@ export const FEE_BEARER: "organizer" | "attendee" = "organizer";
 
 export const CURRENCY = "INR";
 
-/** Normalise a site URL — tolerate a missing protocol (e.g. Netlify env set to
- *  "aikyam.netlify.app" instead of "https://aikyam.netlify.app"). */
+/** Normalise a site URL — tolerate a missing protocol (e.g. an env var set to
+ *  "aikyam.vercel.app" instead of "https://aikyam.vercel.app"). */
 function normalizeUrl(u: string): string {
   const t = u.trim();
   if (!t) return "http://localhost:3000";

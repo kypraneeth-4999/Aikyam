@@ -20,7 +20,7 @@ self-declared. See `src/lib/circles.ts`.
 - **Supabase** (Postgres + Auth + Storage). Auth = phone OTP + Google only (no passwords).
 - **Razorpay** Standard Checkout → **Route** for split payouts.
 - **WhatsApp Cloud API** (direct) + email for the notification lifecycle.
-- **Tailwind CSS v4**. **Netlify** hosting.
+- **Tailwind CSS v4**. **Vercel** hosting.
 
 ## Conventions
 - **Money is integer paise** everywhere (₹1 = 100). Never floats. Matches Razorpay.
@@ -64,28 +64,28 @@ Webhook-verified payments · idempotency keys · signed single-use QR tickets ·
 OTP rate limiting · server-side RBAC · PII minimization · atomic capacity decrement ·
 signed expiring URLs for private exports · append-only AuditLog on all money moves.
 
-## Hosting
+## Hosting — Vercel
 
-Migrating to **Vercel** (native Next.js, no plugin) — see
-[`docs/VERCEL-MIGRATION.md`](docs/VERCEL-MIGRATION.md). `netlify.toml` is kept so
-Netlify still works as a fallback. Nothing in the app code is host-specific.
+**Vercel only.** Netlify is gone (config, scheduled function and the `[deploy]`
+build gate were all removed on 1 Aug 2026). Nothing in the app code is
+host-specific. Operational detail: [`docs/HOSTING.md`](docs/HOSTING.md).
+
+**Every push to `master` deploys to production.** There is no build gate any
+more — don't push half-finished work to `master`.
 
 Reminders are triggered hourly by `.github/workflows/reminders.yml` (Vercel's
 Hobby cron only runs daily). Sends are idempotent, so overlapping triggers are safe.
 
-## Deploying on Netlify (deliberate, not on every push)
+⚠️ **`NEXT_PUBLIC_*` values are inlined into the browser bundle at build time,
+not read at runtime.** Adding one in the Vercel dashboard changes nothing until a
+build runs with it present, and a redeploy that reuses the build cache can keep
+serving the old bundle. After changing any `NEXT_PUBLIC_*`, redeploy with **"Use
+existing Build Cache" unticked**.
 
-Netlify's free tier includes a limited amount of build time per cycle, and every
-push used to trigger a full build. `netlify.toml` now uses an `ignore` command so
-a build only runs when the **newest commit message contains `[deploy]`**.
-
-```bash
-npm run deploy      # empty commit tagged [deploy], then push
-```
-
-Or include `[deploy]` anywhere in a normal commit message. Ordinary pushes are
-skipped by Netlify at no cost — batch work and publish when you actually want to
-see it live.
+⚠️ **A new host origin needs Supabase told about it**, or Google sign-in breaks:
+Supabase → Authentication → URL Configuration → **Site URL** *and* **Redirect
+URLs**. If `redirect_to` isn't on the allowlist, GoTrue silently discards it and
+sends the auth code to the Site URL instead.
 
 ## Local dev
 - `npm run dev` — http://localhost:3000

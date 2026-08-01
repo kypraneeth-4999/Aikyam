@@ -38,7 +38,7 @@ export default function PrivacyPage() {
           <h2 className="mb-2 font-semibold text-cream">Who else sees your data</h2>
           <p>
             Service providers that make the platform work: Supabase (database and
-            authentication), Netlify (hosting), Razorpay (payments), and Resend
+            authentication), Vercel (hosting), Razorpay (payments), and Resend
             (email). We do not sell your data.
           </p>
         </section>

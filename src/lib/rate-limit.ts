@@ -1,7 +1,7 @@
 /**
  * Best-effort in-memory sliding-window rate limiter.
  *
- * Note: on serverless (Netlify functions) memory is per-instance, so this is a
+ * Note: on serverless (Vercel functions) memory is per-instance, so this is a
  * soft guard, not a hard limit — back it with Upstash/Redis for strict limits.
  * OTP rate-limiting is handled by Supabase Auth, not here.
  */

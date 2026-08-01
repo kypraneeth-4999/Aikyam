@@ -333,7 +333,7 @@ Auth (phone OTP + Google) · Organizer link-in-bio profile · Event creation wiz
 | DB | **Supabase (Postgres)** ✅ locked | Bundles Postgres + auth + storage → fastest path to a working v1; still plain Postgres underneath if we ever migrate |
 | Payments | **Razorpay** Standard Checkout → **Route** for payouts | Route handles split settlements, sub-merchant KYC, RBI/AML compliance out of the box |
 | Messaging | **WhatsApp Cloud API (direct from Meta)** ✅ locked + email | Best developer experience and lowest cost (no BSP markup); official docs + SDK. **Fallback if Meta onboarding/verification is painful: Gupshup** (most API-first managed BSP) |
-| Hosting | **Netlify** (already connected) | Near-zero deploy effort |
+| Hosting | **Vercel** | Native Next.js support, no runtime plugin (moved off Netlify 1 Aug 2026) |
 | QR | Signed **JWT** tokens, verified server-side | Screenshots can't be forged/reused |
 
 ### 6.2 Data model (entities & key fields)
@@ -387,7 +387,7 @@ Auth (phone OTP + Google) · Organizer link-in-bio profile · Event creation wiz
 > Build in **vertical slices**. Each slice ends with something **demoable** and a clear **definition of done**. Do **not** start the next slice until the current one is deployed and works end-to-end.
 
 ### Slice 0 — Foundation
-- **Build:** repo, Next.js + **Supabase** (Postgres + Auth + Storage), full **schema** (incl. Event↔Organizer m2m, `ReservedHandle`, `handle_history`), Supabase Auth wired for phone-OTP + Google, Netlify deploy pipeline, `CLAUDE.md` project file. **Also today:** kick off **Razorpay Route KYC** + **Meta WhatsApp Business verification** (long-lead — see Part VII).
+- **Build:** repo, Next.js + **Supabase** (Postgres + Auth + Storage), full **schema** (incl. Event↔Organizer m2m, `ReservedHandle`, `handle_history`), Supabase Auth wired for phone-OTP + Google, deploy pipeline, `CLAUDE.md` project file. **Also today:** kick off **Razorpay Route KYC** + **Meta WhatsApp Business verification** (long-lead — see Part VII).
 - **Done when:** an empty app is live on a real URL and the DB has all tables.
 - **Demo:** "here's the deployed shell + schema."
 

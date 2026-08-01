@@ -27,7 +27,7 @@ WhatsApp isn't built yet; this unlocks it.
       registration**, or **Shop & Establishment licence**
 - [ ] Supporting proof if asked: recent utility bill or bank statement showing the
       same name + address
-- [ ] A **website** (your Netlify/custom domain) with a visible **Privacy Policy**
+- [ ] A **website** (your Vercel/custom domain) with a visible **Privacy Policy**
       and contact info — verification reviewers do look for this
 
 > **Sole proprietor / not registered yet?** Meta verification generally expects a
@@ -111,8 +111,9 @@ Tips that avoid rejection:
 | `WHATSAPP_WABA_ID` | WhatsApp → API Setup (WhatsApp Business Account ID) |
 | `WHATSAPP_ACCESS_TOKEN` | the System User token from step 1 |
 
-3. [ ] Add all three to **Netlify → Environment variables** (scope: *All scopes*)
-       and to your local `.env.local`. Placeholders already exist in `.env.example`.
+3. [ ] Add all three to **Vercel → Settings → Environment Variables** (tick
+       Production, Preview and Development) and to your local `.env.local`.
+       Placeholders already exist in `.env.example`.
 
 ## Phase 6 — Billing
 
@@ -157,5 +158,5 @@ sending client only.
 - [ ] Templates submitted
 - [ ] Templates approved
 - [ ] System User token generated
-- [ ] Credentials in Netlify + `.env.local`
+- [ ] Credentials in Vercel + `.env.local`
 - [ ] Billing added

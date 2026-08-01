@@ -9,7 +9,7 @@ now** — they run on calendar time, not code time (JAD Part VII).
 ## 1. Supabase project — needed for Slice 1
 
 1. Create a project at <https://supabase.com/dashboard>. Region: **ap-south-1 (Mumbai)**.
-2. Project Settings → API. Copy into your local `.env.local` (and later into Netlify):
+2. Project Settings → API. Copy into your local `.env.local` (and later into Vercel):
    - Project URL → `NEXT_PUBLIC_SUPABASE_URL`
    - `anon` public key → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`  *(server-only — never expose)*
@@ -19,14 +19,21 @@ now** — they run on calendar time, not code time (JAD Part VII).
 4. Auth → Providers:
    - Enable **Phone** and pick an SMS/OTP provider (e.g. MSG91 or Twilio).
    - Enable **Google** — create OAuth credentials in Google Cloud and add Supabase's callback URL.
+5. Auth → **URL Configuration** — set **Site URL** to the deployed origin and add
+   `https://<your-app>.vercel.app/**` to **Redirect URLs**. Skipping this is what
+   breaks Google sign-in: GoTrue discards an unlisted `redirect_to` and sends the
+   auth code to the Site URL instead. Repeat for every origin you host on.
 
-## 2. Netlify — deploy the shell (Slice 0 "done")
+## 2. Vercel — deploy the shell (Slice 0 "done")
 
-1. New site → import `kypraneeth-4999/Aikyam` from GitHub. (Build command and the
-   Next.js runtime plugin are already in `netlify.toml`.)
-2. Site settings → Environment variables: add the three Supabase vars above, plus
-   `NEXT_PUBLIC_SITE_URL` = your Netlify URL.
+1. **Add New → Project** → import `kypraneeth-4999/Aikyam` from GitHub. The
+   Next.js preset is detected automatically; leave build settings alone.
+2. Settings → Environment Variables: add the three Supabase vars above, plus
+   `NEXT_PUBLIC_SITE_URL` = your Vercel URL (with `https://`). Add them **before**
+   the first build — `NEXT_PUBLIC_*` values are inlined at build time.
 3. Deploy → confirm the shell loads at the live URL.
+
+Full detail, including the build-cache trap, is in [`HOSTING.md`](HOSTING.md).
 
 ## 3. Razorpay Route / marketplace KYC — long-lead, needed Slice 3
 
