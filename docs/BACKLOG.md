@@ -4,7 +4,7 @@ Everything not yet built, specced closely enough to start coding on a word.
 Each item lists **why**, the **spec** (schema / API / files), and a rough
 **effort**. Ordered by priority within each section.
 
-**Status today:** all 8 JAD slices built · deployed at aikyam-unity.netlify.app ·
+**Status today:** all 8 JAD slices built · deployed on Vercel ·
 Razorpay test payment verified end-to-end · 24h/3h reminder emails live ·
 co-organisers, discovery, featured events, image upload, settings all shipped.
 
@@ -34,8 +34,8 @@ first real event.
 Attendees get **no email** today — Resend only delivers to the account owner
 until a sending domain is verified. Someone can pay and receive nothing.
 
-- Buy domain → point at Netlify → add SPF/DKIM records in Resend → set
-  `EMAIL_FROM=Aikyam <tickets@yourdomain>` in Netlify → redeploy.
+- Buy domain → add it in Vercel → Settings → Domains → add SPF/DKIM records in
+  Resend → set `EMAIL_FROM=Aikyam <tickets@yourdomain>` in Vercel → redeploy.
 - Then update `NEXT_PUBLIC_SITE_URL`, Supabase Auth redirect URLs, and the
   Razorpay webhook URL to the new domain.
 
@@ -156,11 +156,10 @@ JAD Phase 2, manual promotion only (auto-promotion deliberately parked).
 | **Error monitoring** (Sentry) | today a production error is invisible unless someone reports it | S |
 | **Analytics** (Plausible/PostHog) | you can't see your JAD success metrics — fill rate, repeat organisers | S |
 | **Durable rate limiting** | `src/lib/rate-limit.ts` is in-memory, so it resets per serverless instance. Move to Upstash Redis before real traffic. | S |
-| **`next/image`** | all images are raw `<img>`; Netlify's image CDN is configured but unused → slow cards on mobile data | S |
+| **`next/image`** | all images are raw `<img>`; Vercel's image optimisation is unused → slow cards on mobile data | S |
 | **Accessibility pass** | focus states, labels, contrast, keyboard nav on the scanner/forms | M |
 | **DB backups + restore drill** | verify Supabase PITR is on and *test* a restore | S |
 | **Seed script for a demo dataset** | makes local dev and demos far easier | S |
-| **Re-enable Netlify secrets scanning** | disabled after false positives; revisit with `SECRETS_SCAN_OMIT_PATHS` | S |
 
 ---
 

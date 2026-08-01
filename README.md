@@ -21,8 +21,9 @@ npm run dev                  # http://localhost:3000
 ```
 
 Applying the database schema and provisioning the external services (Supabase,
-Netlify, Razorpay, WhatsApp) is described in
-[`docs/EXTERNAL-SETUP.md`](docs/EXTERNAL-SETUP.md).
+Vercel, Razorpay, WhatsApp) is described in
+[`docs/EXTERNAL-SETUP.md`](docs/EXTERNAL-SETUP.md); hosting and deploys are in
+[`docs/HOSTING.md`](docs/HOSTING.md).
 
 ## Project layout
 
