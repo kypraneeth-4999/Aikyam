@@ -3,6 +3,17 @@
 
 [build]
   command = "npm run build"
+  # Deploy deliberately, not on every push — each build costs credits from the
+  # free tier, and we push far more often than we need to see changes live.
+  #
+  # Netlify's `ignore` command decides whether to build:
+  #   exit 0  -> skip this build
+  #   exit 1  -> go ahead and build
+  # So: build only when the newest commit message contains "[deploy]".
+  #
+  # To ship:  npm run deploy      (empty commit tagged [deploy], then push)
+  # or just include [deploy] anywhere in a normal commit message.
+  ignore = 'git log -1 --pretty=%B | grep -qF "[deploy]" && exit 1 || exit 0'
 
 [build.environment]
   NODE_VERSION = "22"

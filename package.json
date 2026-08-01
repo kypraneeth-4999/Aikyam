@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "deploy": "git commit --allow-empty -m \"chore: publish to production [deploy]\" && git push"
   },
   "dependencies": {
     "@supabase/ssr": "^0.12.0",

@@ -49,6 +49,20 @@ Webhook-verified payments · idempotency keys · signed single-use QR tickets ·
 OTP rate limiting · server-side RBAC · PII minimization · atomic capacity decrement ·
 signed expiring URLs for private exports · append-only AuditLog on all money moves.
 
+## Deploying (deliberate, not on every push)
+
+Netlify's free tier includes a limited amount of build time per cycle, and every
+push used to trigger a full build. `netlify.toml` now uses an `ignore` command so
+a build only runs when the **newest commit message contains `[deploy]`**.
+
+```bash
+npm run deploy      # empty commit tagged [deploy], then push
+```
+
+Or include `[deploy]` anywhere in a normal commit message. Ordinary pushes are
+skipped by Netlify at no cost — batch work and publish when you actually want to
+see it live.
+
 ## Local dev
 - `npm run dev` — http://localhost:3000
 - Copy `.env.example` → `.env.local`, fill in Supabase keys (see `docs/EXTERNAL-SETUP.md`).
