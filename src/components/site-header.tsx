@@ -8,6 +8,7 @@ const CATEGORIES: NavLink[] = [
   { href: "/?category=Theatre", label: "Theatre" },
   { href: "/?category=Folk%20art", label: "Folk" },
   { href: "/?category=Film%20%26%20discussion", label: "Film" },
+  { href: "/circles", label: "Circles" },
 ];
 
 export async function SiteHeader() {

@@ -99,6 +99,8 @@ export async function POST(request: Request) {
     languages: tagList(body.languages, LIMITS.languages),
     age_suitability: str(body.age_suitability, LIMITS.ageSuitability.max),
     tags: tagList(body.tags, LIMITS.tags),
+    circle_id:
+      typeof body.circle_id === "string" && body.circle_id ? body.circle_id : null,
     status: publish ? "published" : "draft",
     slug: publish ? await uniqueSlug(admin, title) : null,
   };
