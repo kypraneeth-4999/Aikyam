@@ -738,7 +738,11 @@ export function EventForm() {
                       type="button"
                       onClick={() => set("photos", f.photos.filter((x) => x !== src))}
                       aria-label={`Remove photo ${i + 1}`}
-                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-crimson text-xs text-white"
+                      /* Sits on an arbitrary photo, so it can't follow the page
+                         theme: a fixed dark chip reads on any image. The old
+                         white-on-crimson was only 4.2:1 in dark mode. */
+                      data-theme="dark"
+                      className="absolute -right-1.5 -top-1.5 flex h-5 w-5 items-center justify-center rounded-full bg-ink/90 text-xs font-bold text-cream ring-1 ring-cream/30"
                     >
                       ×
                     </button>

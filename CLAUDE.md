@@ -7,6 +7,11 @@ Aikyam is a **mobile-first PWA** and the **organizer's platform** for small,
 hyperlocal cultural events (~10–50 attendees) in Pune, India. Full spec:
 [`docs/JAD.md`](docs/JAD.md). Read it before adding scope.
 
+**Suppliers** (`/supplier`, in progress) is a trade directory — venues, cafés,
+costumes, props, equipment — that **only organisers may read**. It is the first
+data in the app that is not publicly readable, and that rule is enforced in RLS,
+not in the UI. See `supabase/migrations/20260802120000_suppliers.sql`.
+
 **Circles** (`/circles`) layers invitation-led communities on top: a circle's
 gatherings are ordinary events (`events.circle_id`), and member reputation is
 computed from **QR check-ins**, so attendance is verified rather than
