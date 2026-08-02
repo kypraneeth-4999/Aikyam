@@ -2,24 +2,48 @@
 
 **Start here.** Snapshot of what's built, what's pending, and what's broken.
 
-_Last updated: 1 Aug 2026_
+_Last updated: 2 Aug 2026_
+
+**Live: https://aikyam-7gzf.vercel.app** — the only Vercel project, the only host.
 
 ---
 
-## 🔴 Do these first
+## 🔴 Do these first — two things are silently broken
 
-### 1. Delete the duplicate Vercel project
-Two Vercel projects deploy from this repo, which doubles builds and makes "is it
-live?" ambiguous. **Keep `aikyam-7gzf`** — it is the one Supabase is configured
-for. The `aikyam` project (`aikyam-umber.vercel.app`) is not on Supabase's
-redirect allowlist, so sign-in is broken there by design.
+Neither is a code problem. Both are external dashboards, and both fail **quietly**
+— nothing errors, the work just never happens.
 
-Vercel → the **`aikyam`** project → **Settings → General** → bottom of the page →
-**Delete Project** → type the project name to confirm.
+### 1. Razorpay webhook still points at a dead URL
+The webhook was configured against the old Netlify domain, which no longer
+exists. Razorpay is POSTing into a 404.
 
-Afterwards, `aikyam-umber.vercel.app` stops resolving. Nothing should point at
-it — `NEXT_PUBLIC_SITE_URL`, Supabase URL Configuration, the Razorpay webhook and
-the GitHub `SITE_URL` secret should all name `aikyam-7gzf.vercel.app`.
+**Razorpay → Account & Settings → Webhooks** → set the URL to:
+
+```
+https://aikyam-7gzf.vercel.app/api/webhooks/razorpay
+```
+
+Keep the same secret; leave `payment.captured` and `order.paid` ticked.
+
+**Why it matters:** payment truth is the webhook *only* — the client callback is
+never trusted (JAD §6.5). Until this is fixed a person can pay, and their booking
+is never marked paid, so no ticket is issued. Nothing on our side reports an
+error. Verify by completing a test-card booking and confirming a QR ticket.
+
+### 2. `CRON_SECRET` is missing from GitHub Actions
+`SITE_URL` is set. `CRON_SECRET` is not, so *Event reminders* cannot authenticate
+against `/api/cron/reminders` — the workflow is registered and active but **has
+never run successfully**, meaning no 24h/3h reminder has ever been sent.
+
+From the repo root (reads the value out of your own `.env.local`, so it is never
+typed anywhere):
+
+```bash
+gh secret set CRON_SECRET --body "$(grep '^CRON_SECRET=' .env.local | cut -d= -f2- | tr -d '[:space:]')"
+```
+
+Then **Actions → Event reminders → Run workflow**. A good run prints
+`{"ok":true,...}`.
 
 ---
 
@@ -74,6 +98,24 @@ curl -sS -o /dev/null -w "%{http_code}\n" "$NEXT_PUBLIC_SUPABASE_URL/rest/v1/cir
 `netlify.toml`, the scheduled function and the `npm run deploy` / `[deploy]`
 build gate are gone from the repo, and the `aikyam-unity` site is deleted.
 **Every push to `master` now deploys to production, with no gate.**
+
+### Duplicate Vercel project — DELETED (2 Aug)
+`aikyam-7gzf` is the only project. `aikyam-umber.vercel.app` no longer resolves,
+and pushes build once instead of twice.
+
+### Light-mode contrast on the organiser CTA — FIXED (2 Aug)
+The homepage CTA panel's gradient is hard-coded dark via an inline style, but its
+text used theme tokens that flip: in light mode `text-cream` resolved to `#1c1626`
+— near-black on near-black. `text-gold` was wrong there too, since light mode
+deepens gold to `#9a5f08` for contrast against ivory.
+
+The panel now carries `data-theme="dark"`, and `globals.css` declares the dark
+palette under a plain `[data-theme="dark"]` selector so it can scope to a
+**subtree**, not just `:root`. Measured after: heading 15.28:1, label 8.41:1,
+body 6.03–6.33:1 — AA in both themes.
+
+**Reusable rule:** any panel with a fixed dark background should set
+`data-theme="dark"` on itself rather than hard-coding text colours.
 
 ---
 
