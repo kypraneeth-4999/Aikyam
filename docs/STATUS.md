@@ -8,6 +8,43 @@ _Last updated: 2 Aug 2026_
 
 ---
 
+## 🚧 In progress — Suppliers (trade directory for organisers)
+
+A supplier vertical: venues, cafés, costumes for theatre, props, equipment,
+catering. **Supplier data is not public** — only organisers and the owning
+supplier may read it.
+
+**Landed:** the schema —
+[`20260802120000_suppliers.sql`](../supabase/migrations/20260802120000_suppliers.sql)
+(`supplier_profiles`, `supplier_listings`, `event_suppliers`, the category /
+status / price-unit enums, and the RLS that enforces organiser-only reads).
+
+⚠️ **Not applied yet, and not yet run against a real Postgres** — Docker wasn't
+available to dry-run it. Paste it into Supabase → SQL Editor and read the result
+carefully. If it errors, it will do so before creating anything.
+
+**Design decisions, so nobody re-litigates them:**
+- **Not a separate auth system.** Same Supabase Auth; supplier-ness is owning a
+  `supplier_profiles` row, exactly as organiser-ness is owning an
+  `organizer_profiles` row. One person can be both. The `user_role` enum is
+  untouched.
+- **v1 is a directory, not a marketplace.** No payments, payouts or commission.
+  Organisers browse, shortlist onto an event, and contact suppliers directly.
+  Charging for supplier bookings needs Razorpay Route, which isn't set up.
+- **New suppliers are `pending`.** Only `approved` ones are visible to
+  organisers, so open signup can't push unvetted businesses at them. A trigger
+  reverts any `status` change not made by the service role — without it, RLS
+  alone would let a supplier approve itself.
+- **Policies never sub-query another RLS-protected table.** `is_organizer()`,
+  `organizes_event()`, `supplier_is_approved()` and `owns_listing()` are
+  `security definer` helpers for exactly that reason.
+
+**Still to build:** supplier signup (`/supplier/new`), supplier dashboard with
+listing CRUD, the organiser-facing browse/filter page, shortlisting onto an
+event, and an admin approval action. None of it exists yet.
+
+---
+
 ## 🔴 Do these first — two things are silently broken
 
 Neither is a code problem. Both are external dashboards, and both fail **quietly**
